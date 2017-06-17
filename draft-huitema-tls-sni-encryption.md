@@ -46,7 +46,7 @@ IP addresses in packet headers, and looking at the data stream between
 user and services. These channels are getting progressivley closed.
 A growing fraction of
 Internet communication is encrypted, mostly using Transport Layer Security
-(TLS) [@?RFC5246]. 
+(TLS) [@?RFC5246].
 Progressive deployment of solutions like DNS in
 TLS [@?RFC7858] mitigates the disclosure of DNS information. More and
 more services are colocated on multiplexed servers, loosening the
@@ -58,8 +58,8 @@ blocked, monitoring focuses on the clear text SNI. The purpose
 of SNI encryption is to prevent that.
 
 In the past, there have been multiple attempts at defining SNI encryption.
-These attempts have generally floundered, because the simple designs fail 
-to mitigate several of the attacks listed in (#snisecreq). 
+These attempts have generally floundered, because the simple designs fail
+to mitigate several of the attacks listed in (#snisecreq).
 
 The proposed design hides a "Hidden Service" behind a "Fronting
 Service". To an external observer, the TLS connections will appear to
@@ -68,7 +68,7 @@ will document the Fronting Service. A second SNI parameter will be
 transmitted in an encrypted form to the Fronting Service, and will
 allow that service to redirect the connection towards the Hidden Service.
 
-The design relies on two main components: tunneling TLS in TLS, as 
+The design relies on two main components: tunneling TLS in TLS, as
 explained in (#tlsintls), and obtaining Combined Tickets that enable
 the tunneled connections between Client and Hidden Service through
 the fronting service, as explained in (#comboticket). These two
@@ -90,7 +90,7 @@ we collect a list of these known attacks.
 ## Mitigate Replay Attacks {#replayattack}
 
 The simplest SNI encryption designs replace in the initial TLS exchange the clear text SNI with
-an encrypted value, using a key known to the multiplexed server. Regardless of the 
+an encrypted value, using a key known to the multiplexed server. Regardless of the
 encryption used, these designs can be broken by a simple replay attack, which works as follow:
 
 1- The user starts a TLS connection to the multiplexed server, including an encrypted
@@ -101,17 +101,17 @@ encryption used, these designs can be broken by a simple replay attack, which wo
 3- The adversary starts its own connection to the multiplexed server, including in its
    connection parameters the encrypted SNI copied from the observed exchange.
 
-4- The muliplexed server establishes the connection to the protected service, thus
+4- The multiplexed server establishes the connection to the protected service, thus
    revealing the identity of the service.
 
 SNI encryption designs MUST mitigate this attack.
 
 ## Avoid Widely Shared Secrets {#sharedsecrets}
 
-It is easy to think of simple schemes in which the SNI is encrypted or hashed using a 
-shared secret. This symmetric key must be known by the multiplexed server, and by 
+It is easy to think of simple schemes in which the SNI is encrypted or hashed using a
+shared secret. This symmetric key must be known by the multiplexed server, and by
 every users of the protected services. Such schemes are thus very fragile, since the
-compromise of a single user would compromise the entire set of users and protected 
+compromise of a single user would compromise the entire set of users and protected
 services.
 
 SNI encryption designs MUST NOT rely on widely shared secrets.
@@ -119,13 +119,13 @@ SNI encryption designs MUST NOT rely on widely shared secrets.
 ## Prevent SNI-based Denial of Service Attacks {#serveroverload}
 
 Encrypting the SNI may create extra load for the multiplexed server. Adversaries may mount
-denial of service attacks by generating random encrypted SNI values and forcing the 
+denial of service attacks by generating random encrypted SNI values and forcing the
 multiplexed server to spend resources in useless decryption attempts.
 
 It may be argued that this is not an important DOS avenue, as regular TLS connection
 attempts also require the server to perform a number of cryptographic operations. However,
 in many cases, the SNI decryption will have to be performed by a front end component
-with limited resource, while the TLS operations are performed by the component dedicated
+with limited resources, while the TLS operations are performed by the component dedicated
 to their respective services. SNI based DOS attacks could target the front end component.
 
 SNI encryption designs MUST mitigate the risk of denial of service attacks through
@@ -138,22 +138,22 @@ In some designs, handshakes using SNI encryption can be easily differentiated fr
 the Client Hello packets, or specific values of the clear text SNI parameter.
 If adversaries can easily detect the use of SNI encryption,
 they could block it, or they could flag the users of SNI encryption for
-special treatment. 
+special treatment.
 
 In the future, it might be possible to assume that a large fraction of TLS handshakes
 use SNI encryption. If that was the case, the detection of SNI encryption would
 be a lesser concern. However, we have to assume that in the near future, only
 a small fraction of TLS connections will use SNI encryption.
 
-SNI encryption designs MUST minimize the observable differences between the TLS 
+SNI encryption designs MUST minimize the observable differences between the TLS
 handshakes that use SNI encryption and those that don't.
 
 ## Forward Secrecy
 
 The general concerns about forward secrecy apply to SNI encryption just as well as
-to regular TLS sessions. For example, some proposed designs rely on a public key of 
+to regular TLS sessions. For example, some proposed designs rely on a public key of
 the multiplexed server to define the SNI encryption key. If the corresponding
-public key was compromised, the adversaries would be able to process 
+public key was compromised, the adversaries would be able to process
 archival records of past connections, and retrieve the protected SNI used in
 these connections. These designs failed to maintain forward secrecy of SNI
 encryption.
@@ -162,9 +162,9 @@ SNI encryption designs MUST provide forward secrecy for the protected SNI.
 
 ## Proper Security Context {#nocontextsharing}
 
-We can design solutions in which the multiplexed server or a fronting 
+We can design solutions in which the multiplexed server or a fronting
 service act as a relay to reach the protected service. Some of those
-solution invole just one TLS handshake between the client and the 
+solutions involve just one TLS handshake between the client and the
 multiplexed server, or between the client and the fronting service.
 The master secret is verified by verifying a certificate provided by
 either of these entities, but not by the protected service.
@@ -188,7 +188,7 @@ and verified "end to end", between client and protected service.
 
 # SNI Encapsulation Specification
 
-We propose to provide SNI Privacy by using a form of TLS encapsulation. 
+We propose to provide SNI Privacy by using a form of TLS encapsulation.
 The big advantage of this design compared to previous attempts
 is that it requires effectively no changes
 to TLS 1.3. It only requires a way to signal to the Gateway
@@ -197,9 +197,9 @@ which is intended for the hidden service. We achieve that through
 the use of a special session resumption ticket, described
 in (#comboticket). The Fronting Service will see a session
 resumption attempt, in which the session context points
-to a tunnelled session towards the Hidden Service. Once the 
+to a tunnelled session towards the Hidden Service. Once the
 tunneled session is established, encrypted packets will
-be forwarded to the Hidden Service without requiring 
+be forwarded to the Hidden Service without requiring
 encryption or decryption by the Fronting Service.
 
 
@@ -207,7 +207,7 @@ encryption or decryption by the Fronting Service.
 
 
 The proposed design is to encapsulate a second Client Hello in the
-early data of a TLS connection to the Fronting Service. To the outside, 
+early data of a TLS connection to the Fronting Service. To the outside,
 it just appears that the client is resuming a session with the
 fronting service.
 
@@ -225,15 +225,15 @@ ClientHello
     + KeyShare
     + signature_algorithms*
     + psk_key_exchange_modes*
-    + pre_shared_key* 
+    + pre_shared_key*
     + SNI = hidden
-) 
+)
                     -------->
                          ClientHello#2
-                         + KeyShare 
+                         + KeyShare
                          + signature_algorithms*
                          + psk_key_exchange_modes*
-                         + pre_shared_key* 
+                         + pre_shared_key*
                          + SNI = hidden    ---->
                                                       ServerHello
                                                 +  pre_shared_key
@@ -243,7 +243,7 @@ ClientHello
                                                    {Certificate*}
                                              {CertificateVerify*}
                                                        {Finished}
-                     <------------------------   
+                     <------------------------
 {Certificate*}
 {CertificateVerify*}
 {Finished}           ------------------------>
@@ -253,7 +253,7 @@ ClientHello
 
 Key to brackets:
 
-  () encrypted with Client->Fronting 0-RTT key 
+  () encrypted with Client->Fronting 0-RTT key
   {} encrypted with Client->Hidden 1-RTT handshake
   [] encrypted with Client->Hidden 1-RTT key
 ~~~
@@ -299,9 +299,9 @@ These issues will be addressed in the next edit.
 ## Combined Tickets {#comboticket}
 
 The establishment of the connection relies on "combined tickets". In
-a regular TLS 1.3 session, the client obtains resumption tickets 
+a regular TLS 1.3 session, the client obtains resumption tickets
 from the server
-after completion of the handshake. This is also the case here, but 
+after completion of the handshake. This is also the case here, but
 these tickets will have two roles:
 
 * enable a session resumption with the Fronting Service for the purpose
@@ -318,7 +318,7 @@ The broad lines of the design could be follow:
   * the client connects to the hidden server directly and the
     hidden server supplies:
 
-       (i) a ticket which consists of 
+       (i) a ticket which consists of
 ~~~
            AEAD(K_s, <ordinary-ticket> || <id-hidden-service>)
 ~~~
@@ -340,8 +340,8 @@ The broad lines of the design could be follow:
 
 ## First session
 
-The previous sections present how sessions can be resumed with the combined 
-ticket. However, there needs to be a first connection to the hidden 
+The previous sections present how sessions can be resumed with the combined
+ticket. However, there needs to be a first connection to the hidden
 service. The following are plausible:
 
 1- The client directly connects to the Hidden Service, and then asks
@@ -357,13 +357,13 @@ The plausible out of band channels are the DNS, and word of mouth.
 
 # Security Considerations {#secusec}
 
-The encapsulation protocol proposed in this draft mitigates the known attacks 
+The encapsulation protocol proposed in this draft mitigates the known attacks
 listed in (#snisecreq). For example, the encapsulation design uses pairwise
 security contexts, and is not dependent on the widely chaired secrets described
 in (#sharedsecrets). The design also does not rely on additional public key
 operations by the multiplexed server or by the fronting server, and thus does
 not open the attck surface for  denial of service discussed in (#serveroverload).
-The session keys are negotiated end to end between the client and the 
+The session keys are negotiated end to end between the client and the
 protected service, as required in (#nocontextsharing).
 
 However, in some cases, proper mitigation depends on careful implementation.
@@ -371,15 +371,15 @@ However, in some cases, proper mitigation depends on careful implementation.
 ## Replay attacks and side channels {#sidechannels}
 
 The solution mitigates the replay attacks described in (#replayattack)
-because adversaries cannot receive the replies intended 
+because adversaries cannot receive the replies intended
 for the client. However, the connection from the
 fronting service to the hidden service can be observed through
 side channels.
 
-To give an obvious example, suppose that 
+To give an obvious example, suppose that
 the fronting service merely relays the data
 by establishing a TCP connection to the hidden service. Adversaries
-can associate the arrival of an encrypted message to the fronting 
+can associate the arrival of an encrypted message to the fronting
 service and the setting of a connection to the hidden service, and deduce
 which hidden service the user accessed.
 
@@ -389,10 +389,10 @@ of the fronting service. (TODO: Yeah, right. In other news, free beer tomorrow.)
 ## Sticking out
 
 The TLS encapsulation protocol mostly fulfills the requirements to "not
-stick out" expressed in (#snireqdontstickout). 
+stick out" expressed in (#snireqdontstickout).
 The initial messages will be sent as 0-RTT data, and will be encrypted using
 the 0-RTT key negotiated with the fronting service. Adversaries cannot
-tell whether the client is using TLS encapsulation or some other 
+tell whether the client is using TLS encapsulation or some other
 0-RTT service. However, this is only true if the fronting service
 regularly uses 0-RTT data.
 
@@ -403,12 +403,12 @@ using the session resumption key. If this key is revealed, the Client Hello data
 will also be revealed. The mitigation there is to not use the same session resumption
 key multiple time.
 
-The most common implementations of TLS tickets have the server using Session Ticket 
-Encryption Keys (STEKs) to create an encrypted copy of the session parameters 
-which is then stored by the client. When the client resumes, it supplies this 
-encrypted copy, the server decrypts it, and has the parameters it needs to resume. 
-The server need only remember the STEK. If a STEK is disclosed to an adversary, then all 
-of the data encrypted by sessions protected by the STEK may be decrypted by an adversary. 
+The most common implementations of TLS tickets have the server using Session Ticket
+Encryption Keys (STEKs) to create an encrypted copy of the session parameters
+which is then stored by the client. When the client resumes, it supplies this
+encrypted copy, the server decrypts it, and has the parameters it needs to resume.
+The server need only remember the STEK. If a STEK is disclosed to an adversary, then all
+of the data encrypted by sessions protected by the STEK may be decrypted by an adversary.
 
 To mitigate this attack, server implementations of the TLS encapsulation protocol
 SHOULD NOT use STEK protected TLS tickets. (TODO: and something more...)
@@ -423,7 +423,7 @@ use early data?
 TODO: add Eric if is not a coauthor. Say thanks to the TLS WG members who
 collected the attacks.
 
-Lots of text copied from 
+Lots of text copied from
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 During the discussion of SNI Encryption in Yokohama, Deb Cooley
