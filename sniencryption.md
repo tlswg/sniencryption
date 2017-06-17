@@ -5,7 +5,7 @@
     docName= "draft-huitema-tls-sni-encryption-00"
     ipr = "trust200902"
     area = "Network"
-    date = 2017-06-01T00:00:00Z
+    date = 2017-06-16T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
@@ -59,7 +59,7 @@ of SNI encryption is to prevent that.
 
 In the past, there have been multiple attempts at defining SNI encryption.
 These attempts have generally floundered, because the simple designs fail 
-to mitigate several of the attacks listed in {{snisecreq}}. 
+to mitigate several of the attacks listed in (#snisecreq). 
 
 The proposed design hides a "Hidden Service" behind a "Fronting
 Service". To an external observer, the TLS connections will appear to
@@ -69,9 +69,9 @@ transmitted in an encrypted form to the Fronting Service, and will
 allow that service to redirect the connection towards the Hidden Service.
 
 The design relies on two main components: tunneling TLS in TLS, as 
-explained in {{tlsintls}}, and obtaining Combined Tickets that enable
+explained in (#tlsintls), and obtaining Combined Tickets that enable
 the tunneled connections between Client and Hidden Service through
-the fronting service, as explained in {{combinedtickets}}. These two
+the fronting service, as explained in (#comboticket). These two
 components are conceived as extensions to TLS 1.3 [@!I-D.ietf-tls-tls13].
 
 ## Key Words
@@ -131,7 +131,7 @@ to their respective services. SNI based DOS attacks could target the front end c
 SNI encryption designs MUST mitigate the risk of denial of service attacks through
 forced SNI decryption.
 
-## Do not stick out {#snireqdontstickout}.
+## Do not stick out {#snireqdontstickout}
 
 In some designs, handshakes using SNI encryption can be easily differentiated from
 "regular" handshakes. For example, some designs require specific extensions in
@@ -194,8 +194,8 @@ is that it requires effectively no changes
 to TLS 1.3. It only requires a way to signal to the Gateway
 server that the encrypted application data is actually a ClientHello
 which is intended for the hidden service. We achieve that through
-the use of a special session resumption ticket, described in
-{{combinedticket}}. The Fronting Service will see a session
+the use of a special session resumption ticket, described
+in (#comboticket). The Fronting Service will see a session
 resumption attempt, in which the session context points
 to a tunnelled session towards the Hidden Service. Once the 
 tunneled session is established, encrypted packets will
@@ -253,10 +253,9 @@ ClientHello
 
 Key to brackets:
 
-  () encrypted with Client->Gateway 0-RTT key 
-     (either handshake or data)
-  <> encrypted with Client->Hidden 0-RTT key
+  () encrypted with Client->Fronting 0-RTT key 
   {} encrypted with Client->Hidden 1-RTT handshake
+  [] encrypted with Client->Hidden 1-RTT key
 ~~~
 
 The way this works is that the Gateway decrypts the *data* in the
@@ -295,8 +294,9 @@ Notes on several obvious technical issues:
    it needs to do trial decryption to know whether the rejection was
    from the Gateway or the Hidden server.
 
+These issues will be addressed in the next edit.
 
-## Combined Tickets {#combinedtickets}
+## Combined Tickets {#comboticket}
 
 The establishment of the connection relies on "combined tickets". In
 a regular TLS 1.3 session, the client obtains resumption tickets 
@@ -309,6 +309,30 @@ these tickets will have two roles:
 
 * and, enable an end to end session resumption with the Hidden
   Service.
+
+The broad lines of the design could be follow:
+
+  * the hidden server and the fronting server share a symmetric key
+    K_sni.
+
+  * the client connects to the hidden server directly and the
+    hidden server supplies:
+
+       (i) a ticket which consists of 
+~~~
+           AEAD(K_s, <ordinary-ticket> || <id-hidden-service>)
+~~~
+       (ii) the identity of the fronting server (in some header)
+
+  * When the client reconnects to the fronting server, it decrypts
+    the ticket using K_sni and if it succeeds, then it just forwards
+    the CH to the hidden server indicated in id-hidden-service
+    (which of course has to know to ignore SNI).
+    Otherwise, it terminates the connection itself with its own
+    SNI.
+
+  * Note that the hidden server can just refresh the ticket any time
+    it pleases, as usual.
 
 (TODO: document how exactly that can work)
 
@@ -334,19 +358,19 @@ The plausible out of band channels are the DNS, and word of mouth.
 # Security Considerations {#secusec}
 
 The encapsulation protocol proposed in this draft mitigates the known attacks 
-listed in {{snisecreq}}. For example, the encapsulation design uses pairwise
+listed in (#snisecreq). For example, the encapsulation design uses pairwise
 security contexts, and is not dependent on the widely chaired secrets described
-in {{sharedsecrets}}. The design also does not rely on additional public key
+in (#sharedsecrets). The design also does not rely on additional public key
 operations by the multiplexed server or by the fronting server, and thus does
-not open the attck surface for  denial of service discussed in {{serveroverload}}.
+not open the attck surface for  denial of service discussed in (#serveroverload).
 The session keys are negotiated end to end between the client and the 
-protected service, as required in {{nocontextsharing}}.
+protected service, as required in (#nocontextsharing).
 
 However, in some cases, proper mitigation depends on careful implementation.
 
 ## Replay attacks and side channels {#sidechannels}
 
-The solution mitigates the replay attacks described in {{replayattack}}
+The solution mitigates the replay attacks described in (#replayattack)
 because adversaries cannot receive the replies intended 
 for the client. However, the connection from the
 fronting service to the hidden service can be observed through
@@ -365,7 +389,7 @@ of the fronting service. (TODO: Yeah, right. In other news, free beer tomorrow.)
 ## Sticking out
 
 The TLS encapsulation protocol mostly fulfills the requirements to "not
-stick out" expressed in {{snireqdontstickout}}. 
+stick out" expressed in (#snireqdontstickout). 
 The initial messages will be sent as 0-RTT data, and will be encrypted using
 the 0-RTT key negotiated with the fronting service. Adversaries cannot
 tell whether the client is using TLS encapsulation or some other 
@@ -388,6 +412,7 @@ of the data encrypted by sessions protected by the STEK may be decrypted by an a
 
 To mitigate this attack, server implementations of the TLS encapsulation protocol
 SHOULD NOT use STEK protected TLS tickets. (TODO: and something more...)
+
 # IANA Considerations
 
 Do we need to register an extension point? Or is it just OK to
