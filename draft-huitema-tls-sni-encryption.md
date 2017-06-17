@@ -2,7 +2,7 @@
     Title = "SNI Encryption in TLS Through Tunneling"
     abbrev = "SNI Encryption in TLS"
     category = "std"
-    docName= "draft-huitema-tls-sni-encryption-00"
+    docName= "draft-huitema-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
     date = 2017-06-16T00:00:00Z
