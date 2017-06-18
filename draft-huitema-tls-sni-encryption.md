@@ -5,7 +5,7 @@
     docName= "draft-huitema-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
-    date = 2017-06-16T00:00:00Z
+    date = 2017-06-17T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
@@ -158,7 +158,9 @@ archival records of past connections, and retrieve the protected SNI used in
 these connections. These designs failed to maintain forward secrecy of SNI
 encryption.
 
-SNI encryption designs MUST provide forward secrecy for the protected SNI.
+SNI encryption designs SHOULD provide forward secrecy for the protected SNI. However,
+this may be very hard to achieve in practice.
+Designs MAY compromise there, if they have other good properties.
 
 ## Proper Security Context {#nocontextsharing}
 
@@ -186,7 +188,7 @@ and verified "end to end", between client and protected service.
 
 
 
-# SNI Encapsulation Specification
+# SNI Encapsulation Specification {#tunnelpluscombo}
 
 We propose to provide SNI Privacy by using a form of TLS encapsulation.
 The big advantage of this design compared to previous attempts
@@ -338,7 +340,7 @@ The broad lines of the design could be follow:
 
 (TODO: do we need a specific extension to the TLS 1.3 protocol)
 
-## First session
+## First session {#firstsession}
 
 The previous sections present how sessions can be resumed with the combined
 ticket. However, there needs to be a first connection to the hidden
@@ -355,6 +357,177 @@ service. The following are plausible:
 
 The plausible out of band channels are the DNS, and word of mouth.
 
+# SNI encryption with combined tickets {#purecomboticket}
+
+EDITOR'S NOTE: This section is an alternative design to (#tlsintls). As the
+draft progresses, only one of the alternatives will be selected, and the
+text corresponding to the other alternative will be deleted.
+
+We propose to provide SNI Privacy by relying solely on
+"combined tickets".
+The big advantage of this design compared to previous attempts
+is that it requires only minimal changes to implementations
+of TLS 1.3. These changes are confined to the handling of the
+combined ticket by Fronting and Hidden service, and to the signaling
+of the Fronting SNI to the client by the Hidden service.
+ 
+## Session resumption with combined tickets {#comboresume}
+
+In this example, the client obtains a combined session resumption
+ticket during a previous connection to the hidden service, and
+has learned the SNI of the fronting service. The session
+resumption will happen as follow:
+
+~~~
+Client                    Fronting Service         Hidden Service
+ClientHello
++ early_data
++ key_share*
++ psk_key_exchange_modes
++ pre_shared_key
++ SNI = fronting
+                    -------->
+                         // Decode the ticket
+                         // Forwards to hidden
+                         ClientHello  ------->
+
+(Application Data*)  ------------------------>
+                                                      ServerHello
+                                                +  pre_shared_key
+                                                     + key_share*
+                                            {EncryptedExtensions}
+                                                    + early_data*
+                                                       {Finished}
+                     <------------------------ [Application Data]
+(EndOfEarlyData)
+{Finished}           ------------------------>
+
+[Application Data]   <-----------------------> [Application Data]
+
+  +  Indicates noteworthy extensions sent in the
+     previously noted message.
+  *  Indicates optional or situation-dependent
+     messages/extensions that are not always sent.
+  () encrypted with Client->Hidden 0-RTT key
+  {} encrypted with Client->Hidden 1-RTT handshake
+  [] encrypted with Client->Hidden 1-RTT key
+~~~
+
+The Fronting server that receives the Client Hello will find
+the combined ticket in the pre_shared_key extensions, just as it would in
+a regular session resumption attempt. When parsing the ticket, the
+Fronting server will discover that the session really is meant to be resumed
+with the Hidden server. It will arrange for all the connection data
+to be forwarded to the Hidden server, including forwarding a copy of
+the initial Client Hello.
+
+The Hidden server will receive the Client Hello. It will obtain the
+identity of the Fronting service from the SNI parameter. It will then parse
+the session resumption ticket, and proceed with the resumption of
+the session. 
+
+In this design, the Client Hello message is relayed unchanged from Fronting
+server to hidden server. This ensures that code changes are confined to
+the interpretation of the message parameters. The construction of
+handshake contexts is left unchanged. 
+
+## New Combined Session Ticket {#newcomboticket}
+
+In normal TLS 1.3 operations, the server can send New Session Ticket
+messages at any time after the receiving the Client Finished message.
+The ticket structure is defined in TLS 1.3 as:
+
+
+       struct {
+           uint32 ticket_lifetime;
+           uint32 ticket_age_add;
+           opaque ticket_nonce<1..255>;
+           opaque ticket<1..2^16-1>;
+           Extension extensions<0..2^16-2>;
+       } NewSessionTicket;
+
+When SNI encryption is enabled, tickets will carry a "Fronting SNI"
+extension, and the ticket value itself will be negotiated between 
+Fronting Service and Hidden Service, as in:
+
+~~~
+Client                    Fronting Service         Hidden Service
+
+                                      <=======   <Ticket Request>
+                      Combined Ticket =======>
+                                              [New Session Ticket
+                     <------------------------    + SNI Extension]
+
+  <==> sent on connection between Hidden and Fronting service   
+  <>   encrypted with Fronting<->Hidden key
+  [] encrypted with Client->Hidden 1-RTT key
+~~~
+
+In theory, the actual format of the ticket could be set by mutual agreement
+between Fronting Service and Hidden Service. In practice, it is probably better
+to provide guidance, as the ticket must meet three of requirements:
+
+* The Fronting Server must understand enough of the combined ticket
+  to relay the connection towards the Hidden Server;
+
+* The Hidden Server must understand enough of the combined ticket to
+  resume the session with the client;
+
+* Third parties must not be able to deduce the name of the Hidden
+  Service from the value of the ticket.
+
+There are two plausible designs, a stateful design and an shared key design.
+In the stateful design, the ticket are just random numbers that the
+Fronting server associates with the Hidden server, and the Hidden server
+associates with the session context. The shared key design would
+work as follow:
+
+
+  * the hidden server and the fronting server share a symmetric key
+    K_sni.
+
+  * the "clear text" ticket includes a nonce, the ordinary ticket used for session
+    resumption by the hidden service, and the id of the Hidden service
+    for the Fronting Service.
+
+  * the ticket will be encrypted with AEAD, using the nonce as an IV.
+
+  * When the client reconnects to the fronting server, it decrypts
+    the ticket using K_sni and if it succeeds, then it just forwards
+    the CH to the hidden server indicated in id-hidden-service
+    (which of course has to know to ignore SNI).
+    Otherwise, it terminates the connection itself with its own
+    SNI.
+
+The hidden server can just refresh the ticket any time it pleases, as usual.
+
+This design allows the Hidden Service to hides behind many Fronting Services,
+each using a different key. The Client Hello received by the Hidden Server
+carries the SNI of the Frinting Service, which the Hidden Server can use to
+select the appropriate K_sni.
+
+## First session {#newfirstsession}
+
+The previous sections present how sessions can be resumed with the combined
+ticket. However, there needs to be a first connection to the hidden
+service. The followings are plausible:
+
+1- The client directly connects to the Hidden Service, and then asks
+   for a combined ticket. The SNI will not be encrypted for this
+   first connection.
+
+2- The client learns about the relation between Fronting Service and
+   Hidden Service through an out of band channel. It obtains a combined
+   ticket directly from the Fronting Service. That ticket will only be
+   understandable by the Fronting Service. 
+
+In the second case, when the client uses the combined ticket,
+the Hidden Server will receive the Client Hello from the Frinting Service,
+but will be unable to actually resume the session. It can however readily fall
+back to 1-RTT connection establishment.
+
+The plausible out of band channels are the DNS, and word of mouth.
+
 # Security Considerations {#secusec}
 
 The encapsulation protocol proposed in this draft mitigates the known attacks
@@ -362,7 +535,7 @@ listed in (#snisecreq). For example, the encapsulation design uses pairwise
 security contexts, and is not dependent on the widely chaired secrets described
 in (#sharedsecrets). The design also does not rely on additional public key
 operations by the multiplexed server or by the fronting server, and thus does
-not open the attck surface for  denial of service discussed in (#serveroverload).
+not open the attack surface for  denial of service discussed in (#serveroverload).
 The session keys are negotiated end to end between the client and the
 protected service, as required in (#nocontextsharing).
 
