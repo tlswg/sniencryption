@@ -28,13 +28,17 @@
 
 .# Abstract
 
-This draft describes a technique for doing SNI encryption that just
-requires (re)adding EncryptedExtensions to the client's first flight
-defining an extension that indicates "tunnelled TLS" and (maybe) a new
-TLS content type. We would only tunnel the first flight and everything
-else would be handed off to the hidden service. This seems like the
-minimal change to enable Encrypted SNI while retaining our existing
-analytical frame for the rest of TLS.
+This draft describes the general problem of encryption of
+the Server Name Identification (SNI) parameter. The proposed
+solutions hide a Hidden Service behind a Fronting Service,
+only disclosing the SNI of the Fronting Service to external
+observers. The draft starts by listing known attacks against
+SNI encryption, and then presents two potential solutions
+that might mitigate these attacks.
+The first solution is based on TLS in TLS "quasi tunneling",
+and the second solution is based on "combined tickets".
+These solutions only require minimal extensions to the TLS
+protocol.
 
 {mainmatter}
 
@@ -43,7 +47,7 @@ analytical frame for the rest of TLS.
 Historically, adversaries have been able to monitor the use of web
 services through three channels: looking at DNS requests, looking at
 IP addresses in packet headers, and looking at the data stream between
-user and services. These channels are getting progressivley closed.
+user and services. These channels are getting progressively closed.
 A growing fraction of
 Internet communication is encrypted, mostly using Transport Layer Security
 (TLS) [@?RFC5246].
@@ -61,18 +65,26 @@ In the past, there have been multiple attempts at defining SNI encryption.
 These attempts have generally floundered, because the simple designs fail
 to mitigate several of the attacks listed in (#snisecreq).
 
-The proposed design hides a "Hidden Service" behind a "Fronting
+The current draft proposes two designs for SNI Encryption. 
+Both designs hide a "Hidden Service" behind a "Fronting
 Service". To an external observer, the TLS connections will appear to
 be directed towards the Fronting Service. The cleartext SNI parameter
 will document the Fronting Service. A second SNI parameter will be
 transmitted in an encrypted form to the Fronting Service, and will
 allow that service to redirect the connection towards the Hidden Service.
 
-The design relies on two main components: tunneling TLS in TLS, as
+The first design relies on two main components: tunneling TLS in TLS, as
 explained in (#tlsintls), and obtaining Combined Tickets that enable
 the tunneled connections between Client and Hidden Service through
 the fronting service, as explained in (#comboticket). These two
 components are conceived as extensions to TLS 1.3 [@!I-D.ietf-tls-tls13].
+
+The second design, presented in (#purecomboticket) removes the requirement for 
+tunneling, on simply relies on Combined Tickets. It uses the extension
+process for session tickets already defined in [@!I-D.ietf-tls-tls13].
+
+This draft is presented as is to trigger discussions. It is expected that as the
+draft progresses, only one of the two proposed solutions will be retained.
 
 ## Key Words
 
@@ -89,7 +101,8 @@ we collect a list of these known attacks.
 
 ## Mitigate Replay Attacks {#replayattack}
 
-The simplest SNI encryption designs replace in the initial TLS exchange the clear text SNI with
+The simplest SNI encryption designs replace in the initial TLS
+exchange the clear text SNI with
 an encrypted value, using a key known to the multiplexed server. Regardless of the
 encryption used, these designs can be broken by a simple replay attack, which works as follow:
 
@@ -186,8 +199,6 @@ client and protected service.
 SNI encryption designs MUST ensure that the master secret are negotiated
 and verified "end to end", between client and protected service.
 
-
-
 # SNI Encapsulation Specification {#tunnelpluscombo}
 
 We propose to provide SNI Privacy by using a form of TLS encapsulation.
@@ -204,9 +215,7 @@ tunneled session is established, encrypted packets will
 be forwarded to the Hidden Service without requiring
 encryption or decryption by the Fronting Service.
 
-
 ## Tunneling TLS in TLS {#tlsintls}
-
 
 The proposed design is to encapsulate a second Client Hello in the
 early data of a TLS connection to the Fronting Service. To the outside,
@@ -539,11 +548,20 @@ not open the attack surface for  denial of service discussed in (#serveroverload
 The session keys are negotiated end to end between the client and the
 protected service, as required in (#nocontextsharing).
 
+The combined ticket solution also mitigates the known attacks. 
+The design uses pairwise
+security contexts, and is not dependent on the widely chaired secrets described
+in (#sharedsecrets). The design also does not rely on additional public key
+operations by the multiplexed server or by the fronting server, and thus does
+not open the attack surface for  denial of service discussed in (#serveroverload).
+The session keys are negotiated end to end between the client and the
+protected service, as required in (#nocontextsharing).
+
 However, in some cases, proper mitigation depends on careful implementation.
 
 ## Replay attacks and side channels {#sidechannels}
 
-The solution mitigates the replay attacks described in (#replayattack)
+Both solutions mitigate the replay attacks described in (#replayattack)
 because adversaries cannot receive the replies intended
 for the client. However, the connection from the
 fronting service to the hidden service can be observed through
@@ -557,7 +575,8 @@ service and the setting of a connection to the hidden service, and deduce
 which hidden service the user accessed.
 
 The mitigation of this attack relies on proper implementation
-of the fronting service. (TODO: Yeah, right. In other news, free beer tomorrow.)
+of the fronting service. This may require cooperation from the multiplexed
+server.
 
 ## Sticking out
 
@@ -568,6 +587,16 @@ the 0-RTT key negotiated with the fronting service. Adversaries cannot
 tell whether the client is using TLS encapsulation or some other
 0-RTT service. However, this is only true if the fronting service
 regularly uses 0-RTT data.
+
+The combined token solution almost perfectly fulfills the requirements to "not
+stick out" expressed in (#snireqdontstickout), as the observable flow of
+message is almost exactly the same as a regular TLS connection. However,
+adversaries could observe the values of the PSK Identifier that contains
+the combined ticket. The proposed ticket structure is designed to twart
+analysis of the ticket, but if implementations are not careful the size of
+the combined ticket can be used as a side channel allowing adversaries to
+distinguish between different Hidden Services located behind the same
+Fronting Service.
 
 ## Forward Secrecy
 
@@ -584,7 +613,9 @@ The server need only remember the STEK. If a STEK is disclosed to an adversary, 
 of the data encrypted by sessions protected by the STEK may be decrypted by an adversary.
 
 To mitigate this attack, server implementations of the TLS encapsulation protocol
-SHOULD NOT use STEK protected TLS tickets. (TODO: and something more...)
+SHOULD use stateful tickets instead of STEK protected TLS tickets. If they do
+rely on STEK protected tickets, they MUST ensure that the K_sni keys used to
+encrypt these tickets are rotated frequently.
 
 # IANA Considerations
 
@@ -610,6 +641,6 @@ tunnelling proposal that removes this cost. The key observation is
 that if we think of the 0-RTT flight as a separate message attached to
 the handshake, then we can tunnel a second first flight in it.
 
-
+TODO: The combined ticket approach was first proposed by XXX and YYY.
 
 {backmatter}
