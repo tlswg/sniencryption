@@ -5,7 +5,7 @@
     docName= "draft-huitema-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
-    date = 2017-06-17T00:00:00Z
+    date = 2017-06-20T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
@@ -73,13 +73,12 @@ will document the Fronting Service. A second SNI parameter will be
 transmitted in an encrypted form to the Fronting Service, and will
 allow that service to redirect the connection towards the Hidden Service.
 
-The first design relies on two main components: tunneling TLS in TLS, as
-explained in (#tlsintls), and obtaining Combined Tickets that enable
-the tunneled connections between Client and Hidden Service through
-the fronting service, as explained in (#comboticket). These two
-components are conceived as extensions to TLS 1.3 [@!I-D.ietf-tls-tls13].
+The first design relies on tunneling TLS in TLS, as
+explained in (#snitunnel). It does not require TLS extensions,
+but relies on conventions in the implementation of TLS 1.3 [@!I-D.ietf-tls-tls13]
+by the Client and the Fronting Server.
 
-The second design, presented in (#purecomboticket) removes the requirement for 
+The second design, presented in (#comboticket) removes the requirement for 
 tunneling, on simply relies on Combined Tickets. It uses the extension
 process for session tickets already defined in [@!I-D.ietf-tls-tls13].
 
@@ -199,18 +198,14 @@ client and protected service.
 SNI encryption designs MUST ensure that the master secret are negotiated
 and verified "end to end", between client and protected service.
 
-# SNI Encapsulation Specification {#tunnelpluscombo}
+# SNI Encapsulation Specification {#snitunnel}
 
 We propose to provide SNI Privacy by using a form of TLS encapsulation.
 The big advantage of this design compared to previous attempts
 is that it requires effectively no changes
 to TLS 1.3. It only requires a way to signal to the Gateway
 server that the encrypted application data is actually a ClientHello
-which is intended for the hidden service. We achieve that through
-the use of a special session resumption ticket, described
-in (#comboticket). The Fronting Service will see a session
-resumption attempt, in which the session context points
-to a tunnelled session towards the Hidden Service. Once the
+which is intended for the hidden service. Once the
 tunneled session is established, encrypted packets will
 be forwarded to the Hidden Service without requiring
 encryption or decryption by the Fronting Service.
@@ -280,19 +275,36 @@ the client's actual share (though of course it must be in the same
 group)), SNI, and maybe EarlyDataIndication), then an attacker should
 not be able to distinguish these cases.
 
+## Tunneling design issues {#tunnelissues}
+
+The big advantage of this design is that it requires effectively no changes
+to TLS. It only requires a way to signal to the Fronting
+Server that the encrypted application data is actually a ClientHello
+which is intended for the hidden service. 
+
+The major disadvantage of this overall design strategy (however it's
+signaled) is that it's somewhat harder to implement in the co-tenanted
+cases than the most trivial "RealSNI" scheme. That means that it's
+somewhat less likely that servers will implement it "by default" and
+more likely that they will have to take explicit effort to allow
+Encrypted SNI. Conversely, however, these modes (aside from a server
+with a single wildcard or multi-SAN cert) involve more changes to TLS
+to deal with issues like "what is the server cert that is digested
+into the keys", and that requires more analysis, so there is an
+advantage to deferring that. If we have EncryptedExtensions in the
+client's first flight it would be possible to add RealSNI later
+if/when we had clearer analysis for that case.
+
 Notes on several obvious technical issues:
 
-1. How does the Gateway distinguish this case from where the initial
-   flight is actual application data? See below for some thoughts
+1. How does the Fronting Server distinguish this case from where the initial
+   flight is actual application data? See (#gatewaylogic) for some thoughts
    on this.
 
 2. Can we make this work with 0-RTT data from the client to the Hidden
-   server? I believe the answer here is "yes", because the server's
-   EarlyDataIndication does not carry the configuration_id. I just
-   didn't show it in the diagram because it was already getting
-   complicated.
+   server? The answer is probably yes, as discussed in (#tlsintlsearly).
 
-3. What happens if the Gateway server doesn't gateway, e.g., because
+3. What happens if the Fronting Server doesn't gateway, e.g., because
    it has forgotten the ServerConfiguration? In that case, the
    client gets a handshake with the Gateway, which it will have
    to determine via trial decryption. At this point the Gateway
@@ -305,70 +317,125 @@ Notes on several obvious technical issues:
    it needs to do trial decryption to know whether the rejection was
    from the Gateway or the Hidden server.
 
-These issues will be addressed in the next edit.
+The client part of that logic, including the handling of question #3 above,
+is discussed in (#tlsintlsclientreq).
 
-## Combined Tickets {#comboticket}
+### Gateway logic {#gatewaylogic}
 
-The establishment of the connection relies on "combined tickets". In
-a regular TLS 1.3 session, the client obtains resumption tickets
-from the server
-after completion of the handshake. This is also the case here, but
-these tickets will have two roles:
+The big advantage of this design is that it requires effectively no changes
+to TLS. It only requires a way to signal to the Fronting
+Server that the encrypted application data is actually a ClientHello
+which is intended for the hidden service. The two most obvious
+designs are:
 
-* enable a session resumption with the Fronting Service for the purpose
-  of tunnel establishment;
+- Have an EncryptedExtension which indicates that the inner
+  data is tunnelled.
+- Have a "tunnelled" TLS content type.
 
-* and, enable an end to end session resumption with the Hidden
-  Service.
+EncryptedExtensions would be the most natural, but they were removed
+from the ClientHello during the TLS standardization. In (#tlsintls)
+we assume that the second ClientHello is just transmitted as 0-RTT
+data, and that the servers use some form of pattern matching to
+differentiate between this second ClientHello and other application
+messages.
 
-The broad lines of the design could be follow:
+### Early data {#tlsintlsearly}
 
-  * the hidden server and the fronting server share a symmetric key
-    K_sni.
+In the proposes design, the second ClientHello is sent to the
+Fronting Server as early data, encrypted with Client->Fronting
+0-RTT key. If the Client follows the second ClientHello with
+0-RTT data, that data could in theory be sent in two ways:
 
-  * the client connects to the hidden server directly and the
-    hidden server supplies:
+1. The client could use double encryption. The data is first
+   encrypted with the Client->Hidden 0-RTT key, then
+   wrapped and encrypted with the Client->Fronting 0-RTT key.
+   The Fronting server would decrypt, unwrap and relay.
 
-       (i) a ticket which consists of
+2. The client could just encrypt the data with the
+   Client->Hidden 0-RTT key, and ask the server to blindly
+   relay it.
+
+To understand which of the variant applies, the Fronting Server
+needs to maintain some state. The diagram in (#tlsintls) shows
+an implicit transition: as soon as the Fronting Server has
+relayed the second ClientHello, it moves to a relaying mode,
+in which all further messages are simply tunneled to the
+Hidden Server. However, the diagram has a small bug: it
+shows use of early data between client and server, but does not
+show any EndOfEarlyData message. Presumably, there should
+be two such messages: one from Client to Fronting Server,
+and one from Client to Hidden Server. The second message has
+to be hidden from third parties, otherwise they would detect
+that tunneling is going on. This points towards a need
+for double encryption:
+
 ~~~
-           AEAD(K_s, <ordinary-ticket> || <id-hidden-service>)
+Client                    Fronting Service         Hidden Service
+ClientHello
++ early_data
++ key_share*
++ psk_key_exchange_modes
++ pre_shared_key
++ SNI = fronting
+(
+   //Application data
+   ClientHello#2
+    + KeyShare
+    + signature_algorithms*
+    + psk_key_exchange_modes*
+    + pre_shared_key*
+    + SNI = hidden
+)
+                    -------->
+                         ClientHello#2
+                         + KeyShare
+                         + signature_algorithms*
+                         + psk_key_exchange_modes*
+                         + pre_shared_key*
+                         + SNI = hidden    ---->
+
+( <EarlyData> )   --------->
+                         (unwrap)
+                         <EarlyData>      ---->
+( <EndOfEarlyData#2> )  ----->
+                         // unwrap
+                         <EndOfEarlyData> ---->
+( EndOfEarlyData#1)     ----->
+                         // switches to pure relay mode
+                                   
+
+
+Key to brackets:
+
+  () encrypted with Client->Fronting 0-RTT key
+  <> encrypted with Client->Hidden 0-RTT key
+  {} encrypted with Client->Hidden 1-RTT handshake
+  [] encrypted with Client->Hidden 1-RTT key
 ~~~
-       (ii) the identity of the fronting server (in some header)
 
-  * When the client reconnects to the fronting server, it decrypts
-    the ticket using K_sni and if it succeeds, then it just forwards
-    the CH to the hidden server indicated in id-hidden-service
-    (which of course has to know to ignore SNI).
-    Otherwise, it terminates the connection itself with its own
-    SNI.
+It may me possible to avoid the double encryption by tweaking the
+behavior somewhat.
+  
+### Client requirements {#tlsintlsclientreq}
 
-  * Note that the hidden server can just refresh the ticket any time
-    it pleases, as usual.
+In order to use the tunneling service, the client needs to identify
+the Fronting Service willing to tunnel to the Hidden Service. We can
+assume that the client will learn the identity of suitable Fronting
+Services from the Hidden Service itself.
 
-(TODO: document how exactly that can work)
+In order to tunnel the second ClientHello as 0-RTT data, the client
+needs to have a shared secret with the Fronting Service. To avoid the
+trap of "well known shared secrets" described in (#sharedsecrets),
+this should be a pair wise secret. The most practical solution is
+to use a session resumption ticket. This requires that prior to
+the tunneling attempt, the client establishes regular connections
+with the fronting service and obtains one or several session resumption 
+tickets.
 
-(TODO: do we need a specific extension to the TLS 1.3 protocol)
 
-## First session {#firstsession}
+# SNI encryption with combined tickets {#comboticket}
 
-The previous sections present how sessions can be resumed with the combined
-ticket. However, there needs to be a first connection to the hidden
-service. The following are plausible:
-
-1- The client directly connects to the Hidden Service, and then asks
-   for a combined ticket. The SNI will not be encrypted for this
-   first connection, but it may be encryptedin subsequent connections.
-
-2- The client learns about the relation between Fronting Service and
-   Hidden Service through an out of band channel. It established
-   a regular connection to the Fronting Service, and from there
-   requests a combined ticket.
-
-The plausible out of band channels are the DNS, and word of mouth.
-
-# SNI encryption with combined tickets {#purecomboticket}
-
-EDITOR'S NOTE: This section is an alternative design to (#tlsintls). As the
+EDITOR'S NOTE: This section is an alternative design to (#snitunnel). As the
 draft progresses, only one of the alternatives will be selected, and the
 text corresponding to the other alternative will be deleted.
 
@@ -518,24 +585,20 @@ select the appropriate K_sni.
 ## First session {#newfirstsession}
 
 The previous sections present how sessions can be resumed with the combined
-ticket. However, there needs to be a first connection to the hidden
-service. The followings are plausible:
+ticket. Clients have that have never contacted the Hidden Server will need
+to obtain a first ticket during a first session.
+The most plausible option is to have the client directly connects
+to the Hidden Service, and then asks for a combined ticket. The obvious
+issue is that the SNI will not be encrypted for this first connection.
 
-1- The client directly connects to the Hidden Service, and then asks
-   for a combined ticket. The SNI will not be encrypted for this
-   first connection.
-
-2- The client learns about the relation between Fronting Service and
-   Hidden Service through an out of band channel. It obtains a combined
-   ticket directly from the Fronting Service. That ticket will only be
-   understandable by the Fronting Service. 
-
-In the second case, when the client uses the combined ticket,
-the Hidden Server will receive the Client Hello from the Frinting Service,
-but will be unable to actually resume the session. It can however readily fall
-back to 1-RTT connection establishment.
-
-The plausible out of band channels are the DNS, and word of mouth.
+The client may also learn about the relation between Fronting Service and
+Hidden Service through an out of band channel, such as DNS service, or
+word of mouth. The client could then try to contact the Fronting service
+and obtain through it a combined ticket. However, we should not that in
+this process the client should also learn the resumption secret
+that the Hidden Server associates with the ticket. In the absence of
+such secret, the initial connection will be susceptible to replay
+attacks.
 
 # Security Considerations {#secusec}
 
@@ -624,10 +687,9 @@ use early data?
 
 # Acknowledgements
 
-TODO: add Eric if is not a coauthor. Say thanks to the TLS WG members who
-collected the attacks.
-
-Lots of text copied from
+Thanks to Eric Rescorla for encouraging me to produce this draft, and for
+providing early reviews. Lots of text is copied from an old email from
+Eric to the TLS WG list:
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 During the discussion of SNI Encryption in Yokohama, Deb Cooley
