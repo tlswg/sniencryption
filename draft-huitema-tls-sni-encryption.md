@@ -23,6 +23,17 @@
       city = "Friday Harbor"
       code = "WA  98250"
       country = "U.S.A"
+
+    [[author]]
+    initials="E."
+    surname="Rescorla"
+    fullname="Eric Rescorla"
+    organization= "RTFM, Inc."
+      [author.address]
+      email= "ekr@rtfm.com"
+      [author.address.postal]
+      country = "U.S.A"
+
 %%%
 
 
@@ -218,14 +229,14 @@ it just appears that the client is resuming a session with the
 fronting service.
 
 ~~~
-Client                    Fronting Service         Hidden Service
-ClientHello
-+ early_data
-+ key_share*
-+ psk_key_exchange_modes
-+ pre_shared_key
-+ SNI = fronting
-(
+  Client                  Fronting Service         Hidden Service
+  ClientHello
+  + early_data
+  + key_share*
+  + psk_key_exchange_modes
+  + pre_shared_key
+  + SNI = fronting
+  (
    //Application data
    ClientHello#2
     + KeyShare
@@ -233,14 +244,17 @@ ClientHello
     + psk_key_exchange_modes*
     + pre_shared_key*
     + SNI = hidden
-)
+  )
                     -------->
                          ClientHello#2
                          + KeyShare
                          + signature_algorithms*
                          + psk_key_exchange_modes*
                          + pre_shared_key*
-                         + SNI = hidden    ---->
+                         + SNI = hidden  ---->
+
+  <Application Data*>
+  <end_of_early_data>    -------------------->  
                                                       ServerHello
                                                 +  pre_shared_key
                                                      + key_share*
@@ -249,17 +263,19 @@ ClientHello
                                                    {Certificate*}
                                              {CertificateVerify*}
                                                        {Finished}
-                     <------------------------
-{Certificate*}
-{CertificateVerify*}
-{Finished}           ------------------------>
+                         <--------------------
+  {Certificate*}
+  {CertificateVerify*}
+  {Finished}             ---------------------
 
-[Application Data]   <-----------------------> [Application Data]
+  [Application Data]     <-------------------> [Application Data]
 
 
-Key to brackets:
+  Key to brackets:
 
+  *  optional messages, not present in all scenarios
   () encrypted with Client->Fronting 0-RTT key
+  <> encrypted with Client->Hidden 0-RTT key
   {} encrypted with Client->Hidden 1-RTT handshake
   [] encrypted with Client->Hidden 1-RTT key
 ~~~
@@ -341,7 +357,7 @@ messages.
 
 ### Early data {#tlsintlsearly}
 
-In the proposes design, the second ClientHello is sent to the
+In the proposed design, the second ClientHello is sent to the
 Fronting Server as early data, encrypted with Client->Fronting
 0-RTT key. If the Client follows the second ClientHello with
 0-RTT data, that data could in theory be sent in two ways:
@@ -355,66 +371,17 @@ Fronting Server as early data, encrypted with Client->Fronting
    Client->Hidden 0-RTT key, and ask the server to blindly
    relay it.
 
-To understand which of the variant applies, the Fronting Server
-needs to maintain some state. The diagram in (#tlsintls) shows
-an implicit transition: as soon as the Fronting Server has
-relayed the second ClientHello, it moves to a relaying mode,
-in which all further messages are simply tunneled to the
-Hidden Server. However, the diagram has a small bug: it
-shows use of early data between client and server, but does not
-show any EndOfEarlyData message. Presumably, there should
-be two such messages: one from Client to Fronting Server,
-and one from Client to Hidden Server. The second message has
-to be hidden from third parties, otherwise they would detect
-that tunneling is going on. This points towards a need
-for double encryption:
-
-~~~
-Client                    Fronting Service         Hidden Service
-ClientHello
-+ early_data
-+ key_share*
-+ psk_key_exchange_modes
-+ pre_shared_key
-+ SNI = fronting
-(
-   //Application data
-   ClientHello#2
-    + KeyShare
-    + signature_algorithms*
-    + psk_key_exchange_modes*
-    + pre_shared_key*
-    + SNI = hidden
-)
-                    -------->
-                         ClientHello#2
-                         + KeyShare
-                         + signature_algorithms*
-                         + psk_key_exchange_modes*
-                         + pre_shared_key*
-                         + SNI = hidden    ---->
-
-( <EarlyData> )   --------->
-                         (unwrap)
-                         <EarlyData>      ---->
-( <EndOfEarlyData#2> )  ----->
-                         // unwrap
-                         <EndOfEarlyData> ---->
-( EndOfEarlyData#1)     ----->
-                         // switches to pure relay mode
-                                   
-
-
-Key to brackets:
-
-  () encrypted with Client->Fronting 0-RTT key
-  <> encrypted with Client->Hidden 0-RTT key
-  {} encrypted with Client->Hidden 1-RTT handshake
-  [] encrypted with Client->Hidden 1-RTT key
-~~~
-
-It may me possible to avoid the double encryption by tweaking the
-behavior somewhat.
+Each of these ways has its issues. The double encryption
+scenario would requires two end of early data messages, one
+double encrypted and relayed by the Fronting Server to the 
+Hidden Server, and another sent from Client to Fronting Server,
+to delimitate the end of these double encrypted stream, and
+also to ensure that the stream of messages is not distinguishable 
+from simply sending 0-RTT data to the Fronting server. The 
+blind relaying is simpler, and is the scenario described in
+the diagram of (#tlsintls). In that scenario, the Fronting
+server switches to relaying mode immediately after unwrapping
+and forwarding the second ClientHello.
   
 ### Client requirements {#tlsintlsclientreq}
 
@@ -455,30 +422,30 @@ has learned the SNI of the fronting service. The session
 resumption will happen as follow:
 
 ~~~
-Client                    Fronting Service         Hidden Service
-ClientHello
-+ early_data
-+ key_share*
-+ psk_key_exchange_modes
-+ pre_shared_key
-+ SNI = fronting
+  Client                    Fronting Service         Hidden Service
+  ClientHello
+  + early_data
+  + key_share*
+  + psk_key_exchange_modes
+  + pre_shared_key
+  + SNI = fronting
                     -------->
                          // Decode the ticket
                          // Forwards to hidden
                          ClientHello  ------->
 
-(Application Data*)  ------------------------>
+  (Application Data*)  ---------------------->
                                                       ServerHello
                                                 +  pre_shared_key
                                                      + key_share*
                                             {EncryptedExtensions}
                                                     + early_data*
                                                        {Finished}
-                     <------------------------ [Application Data]
-(EndOfEarlyData)
-{Finished}           ------------------------>
+                       <---------------------- [Application Data]
+  (EndOfEarlyData)
+  {Finished}           ---------------------->
 
-[Application Data]   <-----------------------> [Application Data]
+  [Application Data]   <---------------------> [Application Data]
 
   +  Indicates noteworthy extensions sent in the
      previously noted message.
@@ -553,6 +520,9 @@ to provide guidance, as the ticket must meet three of requirements:
   Service from the value of the ticket.
 
 There are two plausible designs, a stateful design and an shared key design.
+(There is also a design in which the Hidden Server encrypts the tickets with
+the public key of the Fronting Server, but that does not seem very
+practical.)
 In the stateful design, the ticket are just random numbers that the
 Fronting server associates with the Hidden server, and the Hidden server
 associates with the session context. The shared key design would
@@ -589,22 +559,28 @@ ticket. Clients have that have never contacted the Hidden Server will need
 to obtain a first ticket during a first session.
 The most plausible option is to have the client directly connects
 to the Hidden Service, and then asks for a combined ticket. The obvious
-issue is that the SNI will not be encrypted for this first connection.
+issue is that the SNI will not be encrypted for this first connection,
+which exposes clients to surveillance and censorship.
 
 The client may also learn about the relation between Fronting Service and
 Hidden Service through an out of band channel, such as DNS service, or
-word of mouth. The client could then try to contact the Fronting service
-and obtain through it a combined ticket. However, we should not that in
-this process the client should also learn the resumption secret
-that the Hidden Server associates with the ticket. In the absence of
-such secret, the initial connection will be susceptible to replay
-attacks.
+word of mouth. However, it is difficult to establish a combined ticket
+completely out of band, since the ticket must be associated to two
+shared secrets, one shared with the Fronting service so the second
+Client Hello can be sent as 0-RTT data, and the other shared with the
+Hidden service to ensure protection against replay attacks.
+
+An alternative may be to use the TLS-in-TLS service described in
+(#tlsintls) for the first contact.
+There will be some overhead due to tunnelling, but as we discussed
+in (#tlsintlsclientreq) the tunneling solution allows for
+safe first contact.
 
 # Security Considerations {#secusec}
 
 The encapsulation protocol proposed in this draft mitigates the known attacks
 listed in (#snisecreq). For example, the encapsulation design uses pairwise
-security contexts, and is not dependent on the widely chaired secrets described
+security contexts, and is not dependent on the widely shared secrets described
 in (#sharedsecrets). The design also does not rely on additional public key
 operations by the multiplexed server or by the fronting server, and thus does
 not open the attack surface for  denial of service discussed in (#serveroverload).
@@ -612,8 +588,8 @@ The session keys are negotiated end to end between the client and the
 protected service, as required in (#nocontextsharing).
 
 The combined ticket solution also mitigates the known attacks. 
-The design uses pairwise
-security contexts, and is not dependent on the widely chaired secrets described
+The design also uses pairwise
+security contexts, and is not dependent on the widely shared secrets described
 in (#sharedsecrets). The design also does not rely on additional public key
 operations by the multiplexed server or by the fronting server, and thus does
 not open the attack surface for  denial of service discussed in (#serveroverload).
@@ -655,7 +631,7 @@ The combined token solution almost perfectly fulfills the requirements to "not
 stick out" expressed in (#snireqdontstickout), as the observable flow of
 message is almost exactly the same as a regular TLS connection. However,
 adversaries could observe the values of the PSK Identifier that contains
-the combined ticket. The proposed ticket structure is designed to twart
+the combined ticket. The proposed ticket structure is designed to thwart
 analysis of the ticket, but if implementations are not careful the size of
 the combined ticket can be used as a side channel allowing adversaries to
 distinguish between different Hidden Services located behind the same
@@ -687,9 +663,9 @@ use early data?
 
 # Acknowledgements
 
-Thanks to Eric Rescorla for encouraging me to produce this draft, and for
-providing early reviews. Lots of text is copied from an old email from
-Eric to the TLS WG list:
+A large part of this draft originates in discussion of SNI encryption
+on the TLS WG mailing list, including comments after the tunneling
+approach was first proposed in a message to that list:
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 During the discussion of SNI Encryption in Yokohama, Deb Cooley
@@ -703,6 +679,7 @@ tunnelling proposal that removes this cost. The key observation is
 that if we think of the 0-RTT flight as a separate message attached to
 the handshake, then we can tunnel a second first flight in it.
 
-TODO: The combined ticket approach was first proposed by XXX and YYY.
+The combined ticket approach was first proposed by Cedric Fournet and
+Antoine Delignaut-Lavaud.
 
 {backmatter}
