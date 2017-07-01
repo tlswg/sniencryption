@@ -5,7 +5,7 @@
     docName= "draft-huitema-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
-    date = 2017-06-20T00:00:00Z
+    date = 2017-07-01T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
@@ -44,8 +44,10 @@ the Server Name Identification (SNI) parameter. The proposed
 solutions hide a Hidden Service behind a Fronting Service,
 only disclosing the SNI of the Fronting Service to external
 observers. The draft starts by listing known attacks against
-SNI encryption, and then presents two potential solutions
-that might mitigate these attacks.
+SNI encryption, discusses the
+current "co-tenancy fronting" solution,
+and then presents two potential TLS layer solutions
+that might mitigate these attacks.  
 The first solution is based on TLS in TLS "quasi tunneling",
 and the second solution is based on "combined tickets".
 These solutions only require minimal extensions to the TLS
@@ -74,9 +76,11 @@ of SNI encryption is to prevent that.
 
 In the past, there have been multiple attempts at defining SNI encryption.
 These attempts have generally floundered, because the simple designs fail
-to mitigate several of the attacks listed in (#snisecreq).
+to mitigate several of the attacks listed in (#snisecreq). In the absence of
+a TLS level solution, the most popular approach to SNI privacy is HTTP level
+fronting, which we discuss in (#httpfronting).
 
-The current draft proposes two designs for SNI Encryption. 
+The current draft proposes two designs for SNI Encryption in TLS. 
 Both designs hide a "Hidden Service" behind a "Fronting
 Service". To an external observer, the TLS connections will appear to
 be directed towards the Fronting Service. The cleartext SNI parameter
@@ -208,6 +212,131 @@ client and protected service.
 
 SNI encryption designs MUST ensure that the master secret are negotiated
 and verified "end to end", between client and protected service.
+
+## Fronting Server Spoofing {#frontingspoofing}
+
+Adversaries could mount an attack by spoofing the Fronting Service. A
+spoofed Fronting Service could act as a "honeypot" for users of
+hidden services. At a minimum, the fake server could record the IP 
+addresses of these users. If the SNI encryption solution places too
+much trust on the fronting server, the fake server could also
+serve fake content of its own choosing, including various forms of
+malware.
+
+There are two main channels by which adversaries can conduct this
+attack. Adversaries can simply try to mislead users into believing
+that the honeypot is a valid Fronting Server, especially if that
+information is carried by word of mouth or in unprotected DNS
+records. Adversaries can also
+attempt to hijack the traffic to the regular Fronting Server, 
+using for example spoofed DNS responses or spoofed IP level
+routing, combined with a spoofed certificate.
+
+To mitigate this class of attacks, SNI encryption implementations 
+MUST ensure that the Fronting Servers are properly authenticated,
+and SHOULD ensure that the relation between Hidden Services and
+Fronting Services is obtained in a trustworthy manner.
+
+# HTTP Co-Tenancy Fronting {#httpfronting}
+
+In the absence of TLS level SNI encryption, many sites rely on an "HTTP Co-Tenancy"
+solution. The TLS connection is established with the fronting server, and 
+HTTP requests are then sent over that connection to the hidden service. For
+example, the TLS SNI could be set to "fronting.example.com", the fronting
+server, and HTTP requests sent over that connection could be directed
+to "hidden.example.com/some-content", accessing the hidden service. 
+This solution works well in
+practice when the fronting server and the hidden server
+are 'co-tenant" of the same multiplexed server.
+
+The HTTP fronting solution can be deployed without modification to the TLS
+protocol, and does not require using and specific version of TLS. There are
+however a few issues regarding discovery, client implementations, trust, and
+applicability:
+
+* The client has to discover that the hidden service can be accessed through
+  the fronting server. 
+
+* The client browser's has to be directed to access the hidden service 
+  through the fronting service.
+
+* Since the TLS connection is established with the fronting service, the
+  client has no proof that the content does in fact come from the hidden
+  service. The solution does thus not mitigate the context sharing issues
+  described in (#nocontextsharing).
+
+* Since this is an HTTP level solution, it would not protected non HTTP
+  protocols such as DNS over TLS [@?RFC7858] or IMAP over TLS [@?RFC2595].
+
+The discovery issue is common to pretty much every SNI encryption
+solution, and is also discussed in (#tlsintlsclientreq) and (#newfirstsession).
+The browser issue may be solved by developing a browser extension that
+support HTTP Fronting, and manages the list of fronting services associated
+with the hidden services that the client uses. The multi-protocol issue
+can be mitigated by using implementation of other applications over HTTP,
+such as for example DNS over HTTPS [@?I-D.hoffman-dns-over-https]. The trust
+issue, however, requires specific developments such as HTTP tunnels or 
+Delegation Tokens.
+
+## HTTPS Tunnels {#httpfrontingtunnels}
+
+The HTTP Fronting solution places a lot of trust in the Fronting Server. This
+required trust can be reduced by tunnelling HTTPS in HTTPS, which effectively
+treats the Fronting Server as an HTTP Proxy. In this solution, the client
+establishes a TLS connection to the Fronting Server, and then issues
+an HTTP Connect request to the Hidden Server. This will effectively
+establish an end-to-end HTTPS over TLS connection between the client
+and the Hidden Server, mitigating the issues described in (#nocontextsharing).
+
+The HTTPS in HTTPS solution requires double encryption of every packet. It
+also requires that the fronting server decrypts and relay messages to the
+hidden server. Both of these requirements make the implementation onerous.
+
+## Delegation Token {#delegationtokens}
+
+Clients would see their privacy compromised if they contacted the wrong
+fronting server to access the hidden service, since this wrong server
+could disclose their access to adversaries. This can possibly be mitigated
+by recording the relation between fronting server and hidden server in a
+Delegation Token.
+
+The delegation token would be a form of certificate, signed by the hidden service.
+It would have the following components:
+
+ * The DNS name of the fronting service
+
+ * TTL (i.e. expiration date)
+
+ * An indication of the type of access that would be used, such as direct fronting 
+   in which the hidden content is directly served by the fronting server,
+   or HTTPS in HTTPS, or one of the TLS level solutions discussed in
+   (#snitunnel) and (#comboticket)
+
+ * Triple authentication, to make the barrier to setting up a honeypot extremely high
+
+     1. Cert chain for hidden server certificate (e.g., hidden.example.com) up to CA.
+
+     2. Certificate transparency proof of the hidden service certificate 
+        (hidden.example.com) from a popular log, with a requirement that the browser
+        checks the proof before connecting.
+
+     3. A TLSA record for hidden service domain name (hidden.example.com), 
+        with full DNSSEC chain (also mandatory to check)
+
+ * Possibly, a list of valid addresses of the fronting service.
+
+ * Some extension mechanism for other bits
+
+If N multiple domains on a CDN are acceptable fronts, then we may want some way to indicate this
+without publishing and maintaining N separate tokens.
+
+Delegation tokens could be published by the fronting server, in response for example to a
+specific query by a client. The client would then examine whether one of the Delegation
+Tokens matches the hidden service that it wants to access.
+
+QUESTION: Do we need a revocation mechanism? What if a fronting service obtains a
+delegation token, and then becomes untrustable for some other reason? Or is it
+sufficient to just use short TTL?
 
 # SNI Encapsulation Specification {#snitunnel}
 
@@ -528,7 +657,6 @@ Fronting server associates with the Hidden server, and the Hidden server
 associates with the session context. The shared key design would
 work as follow:
 
-
   * the hidden server and the fronting server share a symmetric key
     K_sni.
 
@@ -574,7 +702,8 @@ An alternative may be to use the TLS-in-TLS service described in
 (#tlsintls) for the first contact.
 There will be some overhead due to tunnelling, but as we discussed
 in (#tlsintlsclientreq) the tunneling solution allows for
-safe first contact.
+safe first contact. Yet another way would be to use the HTTPS in
+HTTPS tunneling described in (#httpfrontingtunnels).
 
 # Security Considerations {#secusec}
 
@@ -681,5 +810,9 @@ the handshake, then we can tunnel a second first flight in it.
 
 The combined ticket approach was first proposed by Cedric Fournet and
 Antoine Delignaut-Lavaud.
+
+The delegation token design comes from many people, including
+Ben Schwartz and Rich Salz.
+
 
 {backmatter}
