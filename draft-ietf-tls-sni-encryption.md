@@ -2,10 +2,10 @@
     Title = "SNI Encryption in TLS Through Tunneling"
     abbrev = "SNI Encryption in TLS"
     category = "std"
-    docName= "draft-huitema-tls-sni-encryption-latest"
+    docName= "draft-ietf-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
-    date = 2017-07-01T00:00:00Z
+    date = 2017-08-29T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
@@ -135,8 +135,6 @@ One of the goals of SNI encryption is to prevent adversaries from knowing which
 Hidden Service the client is using. Successful replay attacks breaks that goal by
 allowing adversaries to discover that service.
 
-SNI encryption designs MUST mitigate this attack.
-
 ## Avoid Widely Shared Secrets {#sharedsecrets}
 
 It is easy to think of simple schemes in which the SNI is encrypted or hashed using a
@@ -144,8 +142,6 @@ shared secret. This symmetric key must be known by the multiplexed server, and b
 every users of the protected services. Such schemes are thus very fragile, since the
 compromise of a single user would compromise the entire set of users and protected
 services.
-
-SNI encryption designs MUST NOT rely on widely shared secrets.
 
 ## Prevent SNI-based Denial of Service Attacks {#serveroverload}
 
@@ -158,9 +154,6 @@ attempts also require the server to perform a number of cryptographic operations
 in many cases, the SNI decryption will have to be performed by a front end component
 with limited resources, while the TLS operations are performed by the component dedicated
 to their respective services. SNI based DOS attacks could target the front end component.
-
-SNI encryption designs MUST mitigate the risk of denial of service attacks through
-forced SNI decryption.
 
 ## Do not stick out {#snireqdontstickout}
 
@@ -176,22 +169,15 @@ use SNI encryption. If that was the case, the detection of SNI encryption would
 be a lesser concern. However, we have to assume that in the near future, only
 a small fraction of TLS connections will use SNI encryption.
 
-SNI encryption designs MUST minimize the observable differences between the TLS
-handshakes that use SNI encryption and those that don't.
-
 ## Forward Secrecy
 
 The general concerns about forward secrecy apply to SNI encryption just as well as
 to regular TLS sessions. For example, some proposed designs rely on a public key of
 the multiplexed server to define the SNI encryption key. If the corresponding
-public key was compromised, the adversaries would be able to process
+private key was compromised, the adversaries would be able to process
 archival records of past connections, and retrieve the protected SNI used in
 these connections. These designs failed to maintain forward secrecy of SNI
 encryption.
-
-SNI encryption designs SHOULD provide forward secrecy for the protected SNI. However,
-this may be very hard to achieve in practice.
-Designs MAY compromise there, if they have other good properties.
 
 ## Proper Security Context {#nocontextsharing}
 
@@ -214,9 +200,6 @@ if MITM is possible, the adversaries would also be able to pressure
 them into intercepting or spoofing the communications between
 client and protected service.
 
-SNI encryption designs MUST ensure that the master secret are negotiated
-and verified "end to end", between client and protected service.
-
 ## Fronting Server Spoofing {#frontingspoofing}
 
 Adversaries could mount an attack by spoofing the Fronting Service. A
@@ -235,11 +218,6 @@ records. Adversaries can also
 attempt to hijack the traffic to the regular Fronting Server, 
 using for example spoofed DNS responses or spoofed IP level
 routing, combined with a spoofed certificate.
-
-To mitigate this class of attacks, SNI encryption implementations 
-MUST ensure that the Fronting Servers are properly authenticated,
-and SHOULD ensure that the relation between Hidden Services and
-Fronting Services is obtained in a trustworthy manner.
 
 # HTTP Co-Tenancy Fronting {#httpfronting}
 
@@ -279,8 +257,7 @@ support HTTP Fronting, and manages the list of fronting services associated
 with the hidden services that the client uses. The multi-protocol issue
 can be mitigated by using implementation of other applications over HTTP,
 such as for example DNS over HTTPS [@?I-D.hoffman-dns-over-https]. The trust
-issue, however, requires specific developments such as HTTP tunnels or 
-Delegation Tokens.
+issue, however, requires specific developments.
 
 ## HTTPS Tunnels {#httpfrontingtunnels}
 
@@ -347,7 +324,7 @@ sufficient to just use short TTL?
 We propose to provide SNI Privacy by using a form of TLS encapsulation.
 The big advantage of this design compared to previous attempts
 is that it requires effectively no changes
-to TLS 1.3. It only requires a way to signal to the Gateway
+to TLS 1.3. It only requires a way to signal to the Fronting Server
 server that the encrypted application data is actually a ClientHello
 which is intended for the hidden service. Once the
 tunneled session is established, encrypted packets will
@@ -413,16 +390,18 @@ fronting service.
   [] encrypted with Client->Hidden 1-RTT key
 ~~~
 
-The way this works is that the Gateway decrypts the *data* in the
+The way this works is that the Fronting Server decrypts the *data* in the
 client's first flight, which is actually ClientHello#2 from the
 client, containing the true SNI and then passes it on to the Hidden
-server. However, the Hidden server responds with its own ServerHello
-which the Gateway just passes unchanged, because it's actually the
+server. However, the Hidden Server responds with its own ServerHello
+which the Fronting Server just passes unchanged, because it's actually the
 response to ClientHello#2 rather than to ClientHello#1. As long as
 ClientHello#1 and ClientHello#2 are similar (e.g., differing only in
 the client's actual share (though of course it must be in the same
 group)), SNI, and maybe EarlyDataIndication), then an attacker should
-not be able to distinguish these cases.
+not be able to distinguish these cases -- although there may be possible
+attacks through timing analysis, or by observing traffic between the
+Fronting Server and Hidden Server if they are not colocated.
 
 ## Tunneling design issues {#tunnelissues}
 
@@ -433,16 +412,17 @@ which is intended for the hidden service.
 
 The major disadvantage of this overall design strategy (however it's
 signaled) is that it's somewhat harder to implement in the co-tenanted
-cases than the most trivial "RealSNI" scheme. That means that it's
+cases than the simple schemes that carry the "real SNI" in an encrypted 
+parameter of the Client Hello. That means that it's
 somewhat less likely that servers will implement it "by default" and
 more likely that they will have to take explicit effort to allow
-Encrypted SNI. Conversely, however, these modes (aside from a server
+Encrypted SNI. Conversely, however, these schemes (aside from a server
 with a single wildcard or multi-SAN cert) involve more changes to TLS
 to deal with issues like "what is the server cert that is digested
 into the keys", and that requires more analysis, so there is an
 advantage to deferring that. If we have EncryptedExtensions in the
-client's first flight it would be possible to add RealSNI later
-if/when we had clearer analysis for that case.
+client's first flight it would be possible to define a "Real SNI" extension
+later if/when we had clearer analysis for that case.
 
 Notes on several obvious technical issues:
 
@@ -455,8 +435,8 @@ Notes on several obvious technical issues:
 
 3. What happens if the Fronting Server doesn't gateway, e.g., because
    it has forgotten the ServerConfiguration? In that case, the
-   client gets a handshake with the Gateway, which it will have
-   to determine via trial decryption. At this point the Gateway
+   client gets a handshake with the Fronting Server, which it will have
+   to determine via trial decryption. At this point the Fronting Server
    supplies a ServerConfiguration and the client can reconnect
    as above.
 
@@ -464,12 +444,15 @@ Notes on several obvious technical issues:
    and the Hidden server doesn't recognize the ServerConfiguration in
    ClientHello#2? In this case, the client gets a 0-RTT rejection and
    it needs to do trial decryption to know whether the rejection was
-   from the Gateway or the Hidden server.
+   from the Fronting Server or the Hidden server.
+
+5. What happens if the Fronting Server is under a DOS attack, and chooses
+   to refuse all 0-RTT data?
 
 The client part of that logic, including the handling of question #3 above,
 is discussed in (#tlsintlsclientreq).
 
-### Gateway logic {#gatewaylogic}
+### Fronting Server logic {#gatewaylogic}
 
 The big advantage of this design is that it requires effectively no changes
 to TLS. It only requires a way to signal to the Fronting
@@ -505,16 +488,17 @@ Fronting Server as early data, encrypted with Client->Fronting
    relay it.
 
 Each of these ways has its issues. The double encryption
-scenario would requires two end of early data messages, one
+scenario would require two end of early data messages, one
 double encrypted and relayed by the Fronting Server to the 
 Hidden Server, and another sent from Client to Fronting Server,
-to delimitate the end of these double encrypted stream, and
+to delimit the end of the double encrypted stream, and
 also to ensure that the stream of messages is not distinguishable 
 from simply sending 0-RTT data to the Fronting server. The 
 blind relaying is simpler, and is the scenario described in
 the diagram of (#tlsintls). In that scenario, the Fronting
 server switches to relaying mode immediately after unwrapping
-and forwarding the second ClientHello.
+and forwarding the second ClientHello. However, the blind 
+relaying requires the ClientHello to be isolated to a single record.
   
 ### Client requirements {#tlsintlsclientreq}
 
@@ -552,7 +536,7 @@ of the Fronting SNI to the client by the Hidden service.
 In this example, the client obtains a combined session resumption
 ticket during a previous connection to the hidden service, and
 has learned the SNI of the fronting service. The session
-resumption will happen as follow:
+resumption will happen as follows:
 
 ~~~
   Client                    Fronting Service         Hidden Service
@@ -641,7 +625,7 @@ Client                    Fronting Service         Hidden Service
 
 In theory, the actual format of the ticket could be set by mutual agreement
 between Fronting Service and Hidden Service. In practice, it is probably better
-to provide guidance, as the ticket must meet three of requirements:
+to provide guidance, as the ticket must meet three requirements:
 
 * The Fronting Server must understand enough of the combined ticket
   to relay the connection towards the Hidden Server;
@@ -652,10 +636,9 @@ to provide guidance, as the ticket must meet three of requirements:
 * Third parties must not be able to deduce the name of the Hidden
   Service from the value of the ticket.
 
-There are two plausible designs, a stateful design and an shared key design.
-(There is also a design in which the Hidden Server encrypts the tickets with
-the public key of the Fronting Server, but that does not seem very
-practical.)
+There are three plausible designs, a stateful design, a shared key design,
+and a 
+
 In the stateful design, the ticket are just random numbers that the
 Fronting server associates with the Hidden server, and the Hidden server
 associates with the session context. The shared key design would
@@ -672,35 +655,42 @@ work as follow:
 
   * When the client reconnects to the fronting server, it decrypts
     the ticket using K_sni and if it succeeds, then it just forwards
-    the CH to the hidden server indicated in id-hidden-service
+    the Client Hello to the hidden server indicated in id-hidden-service
     (which of course has to know to ignore SNI).
     Otherwise, it terminates the connection itself with its own
     SNI.
 
 The hidden server can just refresh the ticket any time it pleases, as usual.
 
-This design allows the Hidden Service to hides behind many Fronting Services,
+This design allows the Hidden Service to hide behind many Fronting Services,
 each using a different key. The Client Hello received by the Hidden Server
-carries the SNI of the Frinting Service, which the Hidden Server can use to
+carries the SNI of the Fronting Service, which the Hidden Server can use to
 select the appropriate K_sni.
+
+In the public key design, the Hidden Server encrypts the tickets with
+a public key of the Fronting Server. The ticket itself would be similar
+to what is used in the shared key design. The compute cost for a single
+decryption may be higher, but the Fronting Server would not need to 
+blindly try multiple decryption keys associated with multiple Hidden Servers.
+The Hidden Server would not be able to decrypt the ession Tickets, which means
+that it would have to rely on some kind of stateful storage.
 
 ## First session {#newfirstsession}
 
 The previous sections present how sessions can be resumed with the combined
 ticket. Clients have that have never contacted the Hidden Server will need
 to obtain a first ticket during a first session.
-The most plausible option is to have the client directly connects
-to the Hidden Service, and then asks for a combined ticket. The obvious
+The most plausible option is to have the client directly connect
+to the Hidden Service, and then ask for a combined ticket. The obvious
 issue is that the SNI will not be encrypted for this first connection,
-which exposes clients to surveillance and censorship.
+which exposes the client to surveillance and censorship.
 
 The client may also learn about the relation between Fronting Service and
 Hidden Service through an out of band channel, such as DNS service, or
 word of mouth. However, it is difficult to establish a combined ticket
 completely out of band, since the ticket must be associated to two
-shared secrets, one shared with the Fronting service so the second
-Client Hello can be sent as 0-RTT data, and the other shared with the
-Hidden service to ensure protection against replay attacks.
+shared secrets, one understood by the Fronting service and the other 
+shared with the Hidden service to ensure protection against replay attacks.
 
 An alternative may be to use the TLS-in-TLS service described in
 (#tlsintls) for the first contact.
@@ -734,16 +724,19 @@ However, in some cases, proper mitigation depends on careful implementation.
 ## Replay attacks and side channels {#sidechannels}
 
 Both solutions mitigate the replay attacks described in (#replayattack)
-because adversaries cannot receive the replies intended
+because adversaries cannot decrypt the replies intended
 for the client. However, the connection from the
 fronting service to the hidden service can be observed through
 side channels.
 
 To give an obvious example, suppose that
 the fronting service merely relays the data
-by establishing a TCP connection to the hidden service. Adversaries
+by establishing a TCP connection to the hidden service.
+An adversary capable of observing all
+network traffic at the fronting server
 can associate the arrival of an encrypted message to the fronting
-service and the setting of a connection to the hidden service, and deduce
+service and the TCP handshake between the
+fronting server and the hidden service, and deduce
 which hidden service the user accessed.
 
 The mitigation of this attack relies on proper implementation
@@ -784,7 +777,7 @@ encrypted copy, the server decrypts it, and has the parameters it needs to resum
 The server need only remember the STEK. If a STEK is disclosed to an adversary, then all
 of the data encrypted by sessions protected by the STEK may be decrypted by an adversary.
 
-To mitigate this attack, server implementations of the TLS encapsulation protocol
+To mitigate this attack, server implementations of the combined ticket protocol
 SHOULD use stateful tickets instead of STEK protected TLS tickets. If they do
 rely on STEK protected tickets, they MUST ensure that the K_sni keys used to
 encrypt these tickets are rotated frequently.
@@ -804,7 +797,7 @@ https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 During the discussion of SNI Encryption in Yokohama, Deb Cooley
 argued that rather than messing with TLS to allow SNI encryption,
 we should just tunnel TLS in TLS. A number of people objected
-to this on the grounds of the performance cost for the gateway
+to this on the grounds of the performance cost for the Fronting Server
 because it has to encrypt and decrypt everything.
 
 After the meeting, Martin Thomson suggested a modification to the
@@ -818,5 +811,7 @@ Antoine Delignaut-Lavaud.
 The delegation token design comes from many people, including
 Ben Schwartz, Brian Sniffen and Rich Salz.
 
+Thanks to Daniel Kahn Gillmor for a pretty detailed review of the 
+initial draft.
 
 {backmatter}
