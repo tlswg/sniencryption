@@ -2,9 +2,9 @@
 
 This is the working area for the individual Internet-Draft, "SNI Encryption in TLS Through Tunneling".
 
-* [Editor's Copy](https://huitema.github.io/sniencryption/#go.draft-huitema-tls-sni-encryption.html)
-* [Working Group Draft](https://tools.ietf.org/html/draft-huitema-tls-sni-encryption)
-* [Compare Editor's Copy to Working Group Draft](https://huitema.github.io/sniencryption/#go.draft-huitema-tls-sni-encryption.diff)
+* [Editor's Copy](https://tlswg.github.io/sniencryption/#go.draft-ietf-tls-sni-encryption.html)
+* [Working Group Draft](https://tools.ietf.org/html/draft-ietf-tls-sni-encryption)
+* [Compare Editor's Copy to Working Group Draft](https://tlswg.github.io/sniencryption/#go.draft-ietf-tls-sni-encryption.diff)
 
 ## Building the Draft
 
