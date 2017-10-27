@@ -336,31 +336,31 @@ implemented fully in the TLS layer.
 The Application Layer Protocol Negotiation (ALPN) parameters of TLS
 allow implementations to negotiate the application layer protocol used on
 a given connection. TLS provides the ALPN values in clear text during the
-initial handshake. Exposing the ALPN does not create the same
+initial handshake. While exposing the ALPN does not create the same
 privacy issues as exposing the SNI, there is still a risk. For example,
 some networks may attempt to block applications that they do not
 understand, or that they wish users would not use.
 
-In a sense, the ALPN filtering could be very similar to the filtering
+In a sense, ALPN filtering could be very similar to the filtering
 of specific port numbers exposed in some network. This filtering by ports
 has given rise to evasion tactics in which various protocols are tunneled
 over HTTP in order to use open ports 80 or 443. Filtering by ALPN would
 probably beget the same responses, in which the applications just move
-over HTTP, and only the HTTP ALPN are used. Applications would not
+over HTTP, and only the HTTP ALPN values are used. Applications would not
 need to do that if the ALPN was hidden in the same way as the SNI.
 
-This points to a requirement for SNI Encryption mechanisms to also
-hide the ALPN.
+It is thus desirable that SNI Encryption mechanisms
+be also able hide the ALPN.
 
 ## Support other transports than HTTP
 
-Several applications want to use TLS 1.3 in combination with
-transports such as DTLS [@!I-D.ietf-tls-dtls13]
-or QUIC [@!I-D.ietf-quic-tls]. The requirement to encrypt the SNI
-apply just as well for these transports as TLS over TCP. 
+The TLS handshake is also used over other transports such as UDP
+with both DTLS [@!I-D.ietf-tls-dtls13] and
+QUIC [@!I-D.ietf-quic-tls]. The requirement to encrypt the SNI
+apply just as well for these transports as for TLS over TCP. 
 
 This points to a requirement for SNI Encryption mechanisms to also
-be applicable to transports such as DTLS or QUIC.
+be applicable to non-TCP transports such as DTLS or QUIC.
 
 # SNI Encapsulation Specification {#snitunnel}
 
