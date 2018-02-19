@@ -319,6 +319,49 @@ QUESTION: Do we need a revocation mechanism? What if a fronting service obtains 
 delegation token, and then becomes untrustable for some other reason? Or is it
 sufficient to just use short TTL?
 
+# Supporting multiple protocols
+
+The SNI encryption requirement do not stop with HTTP over TLS. Multiple other
+applications currently use TLS, including for example SMTP [@?RFC5246], DNS [@?RFC7858], 
+or XMPP [@?RFC7590]. These applications too will benefit of SNI encryption.
+HTTP only methods like those described in (#httpfrontingtunnels)
+would not apply there. In fact, even for the HTTPS case, the HTTPS tunneling service
+described in (#httpfrontingtunnels) is compatible with HTTP 1.0 and HTTP 1.1, 
+but interacts awkwardly with the multiple streams feature of HTTP 2.0 [@?RFC7540].
+This points to the need of an application agnostic solution, that would be
+implemented fully in the TLS layer.
+
+## Hiding the Application Layer Protocol Negotiation
+
+The Application Layer Protocol Negotiation (ALPN) parameters of TLS
+allow implementations to negotiate the application layer protocol used on
+a given connection. TLS provides the ALPN values in clear text during the
+initial handshake. While exposing the ALPN does not create the same
+privacy issues as exposing the SNI, there is still a risk. For example,
+some networks may attempt to block applications that they do not
+understand, or that they wish users would not use.
+
+In a sense, ALPN filtering could be very similar to the filtering
+of specific port numbers exposed in some network. This filtering by ports
+has given rise to evasion tactics in which various protocols are tunneled
+over HTTP in order to use open ports 80 or 443. Filtering by ALPN would
+probably beget the same responses, in which the applications just move
+over HTTP, and only the HTTP ALPN values are used. Applications would not
+need to do that if the ALPN was hidden in the same way as the SNI.
+
+It is thus desirable that SNI Encryption mechanisms
+be also able hide the ALPN.
+
+## Support other transports than HTTP
+
+The TLS handshake is also used over other transports such as UDP
+with both DTLS [@!I-D.ietf-tls-dtls13] and
+QUIC [@!I-D.ietf-quic-tls]. The requirement to encrypt the SNI
+apply just as well for these transports as for TLS over TCP. 
+
+This points to a requirement for SNI Encryption mechanisms to also
+be applicable to non-TCP transports such as DTLS or QUIC.
+
 # SNI Encapsulation Specification {#snitunnel}
 
 We propose to provide SNI Privacy by using a form of TLS encapsulation.
