@@ -353,7 +353,7 @@ practice when the fronting server and the hidden server
 are 'co-tenant" of the same multiplexed server.
 
 The HTTP fronting solution can be deployed without modification to the TLS
-protocol, and does not require using and specific version of TLS. There are
+protocol, and does not require using any specific version of TLS. There are
 however a few issues regarding discovery, client implementations, trust, and
 applicability:
 
@@ -394,54 +394,55 @@ The HTTPS in HTTPS solution requires double encryption of every packet. It
 also requires that the fronting server decrypts and relay messages to the
 hidden server. Both of these requirements make the implementation onerous.
 
-## Delegation Token {#delegationtokens}
+## Delegation Control {#delegationtokens}
 
 Clients would see their privacy compromised if they contacted the wrong
 fronting server to access the hidden service, since this wrong server
-could disclose their access to adversaries. This can possibly be mitigated
-by recording the relation between fronting server and hidden server in a
-Delegation Token.
+could disclose their access to adversaries. This requires a controlled
+way to indicate which fronting ferver is acceptable by the hidden service.
 
-The delegation token would be a form of certificate, signed by the hidden service.
-It would have the following components:
+This problem is both similar and different from the "fronting server
+spoofing" attack described in (#frontingspoofing). Here, the spoofing
+would be performed by distributing fake advice, such as "to reach
+example hidden.example.com, use fake.example.com as a fronting
+server", when "fake.example.com" is under the control of an
+adversary.
 
- * The DNS name of the fronting service
+In practice, this attack is well mitigated when the hidden service is
+accessed through a specialized application. The name of the fronting server
+can then be programmed in the code of the application. But the attack is much
+harder to mitigate when the hidden service has to be accessed through general
+purpose web browsers. The browsers will need a mechanism to obtain the
+fronting server indication in a secure way.
+ 
+There are several proposed solutions to this problem, such as creating
+a special form of certificate to codify the relation between fronting and
+hidden server, or obtaining the relation between hidden and fronting service
+through the DNS, possibly using DNSSEC to avoid spoofing. 
 
- * TTL (i.e. expiration date)
-
- * An indication of the type of access that would be used, such as direct fronting 
-   in which the hidden content is directly served by the fronting server,
-   or HTTPS in HTTPS, or in a TLS level solutions.
-
- * Triple authentication, to make the barrier to setting up a honeypot extremely high
-
-     1. Cert chain for hidden server certificate (e.g., hidden.example.com) up to CA.
-
-     2. Certificate transparency proof of the hidden service certificate 
-        (hidden.example.com) from a popular log, with a requirement that the browser
-        checks the proof before connecting.
-
-     3. A TLSA record for hidden service domain name (hidden.example.com), 
-        with full DNSSEC chain (also mandatory to check)
-
- * Possibly, a list of valid addresses of the fronting service.
-
- * Some extension mechanism for other bits
-
-If N multiple domains on a CDN are acceptable fronts, then we may want some way to indicate this
-without publishing and maintaining N separate tokens.
-
-Delegation tokens could be published by the fronting server, in response for example to a
-specific query by a client. The client would then examine whether one of the Delegation
-Tokens matches the hidden service that it wants to access.
-
-QUESTION: Do we need a revocation mechanism? What if a fronting service obtains a
-delegation token, and then becomes untrustable for some other reason? Or is it
-sufficient to just use short TTL?
+We can observe that content distribution network have a similar requirement.
+They need to convince the client that "www.example.com" can be accessed
+through the seemingly unrelated "cdn-node-xyz.example.net". Most CDN have
+deployed DNS-based solutions to this problem.
 
 # Security Considerations {#secusec}
 
-TBD.
+Replacing clear text SNI transmission by an encrypted variant will
+improve the privacy and reliability of TLS connections, but the design
+of proper SNI encryption solutions is difficult. 
+This document does not present the design of a solution, but
+provide guidelines for evaluating proposed solutions.
+
+This document lists a number of attacks against SNI encryption in (#snisecreq),
+and also in (#delegationtokens), and presents a list of requirements
+to mitigate these attacks. The current HTTP based solutions
+described in (#httpfronting) only meet some of these requirements.
+In practice, it may well be that no solution can meet every requirement,
+and that practical solutions will have to make some compromises. 
+
+In particular, the requirement to not stick out presented in
+(#snireqdontstickout) may have to be lifted, especially if
+for proposed solutions that could quickly reach large scale deployments.
 
 # IANA Considerations
 
