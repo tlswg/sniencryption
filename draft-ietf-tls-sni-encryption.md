@@ -5,7 +5,7 @@
     docName= "draft-ietf-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
-    date = 2018-05-11T00:00:00Z
+    date = 2018-11-19T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
@@ -97,7 +97,7 @@ message.
 The SNI was defined to facilitate management of servers, but the
 developer of middleboxes soon found out that they could take
 advantage of the information. Many examples of such usage are
-reviewed in [@?I-D.mm-wg-effect-encrypt]. They include:
+reviewed in [@?RFC8404]. They include:
 
  * Censorship of specific sites by "national firewalls",
 
@@ -134,14 +134,14 @@ part of the DNS queries. Most of the SNI usage described in (#snileak)
 could also be implemented by monitoring DNS traffic or controlling DNS
 usage. But this is changing with the advent of DNS resolvers
 providing services like DNS over TLS [@?RFC7858]
-or DNS over HTTPS [@?I-D.ietf-doh-dns-over-https].
+or DNS over HTTPS [@?RFC8484].
 
 The common name component of the server certificate generally exposes
 the same name as the SNI. In TLS versions 1.0 [@?RFC2246], 1.1 [@?RFC4346], 
 and 1.2 [@?RFC5246], the server send their certificate in clear text,
 ensuring that there would be limited benefits in hiding the SNI. But
 the transmission of the server certificate is protected
-in TLS 1.3 [@!I-D.ietf-tls-tls13].
+in TLS 1.3 [@?RFC8446].
 
 The decoupling of IP addresses and server names, the deployment
 of DNS privacy, and the protection of server certificates transmissions
@@ -377,7 +377,7 @@ The browser issue may be solved by developing a browser extension that
 support HTTP Fronting, and manages the list of fronting services associated
 with the hidden services that the client uses. The multi-protocol issue
 can be mitigated by using implementation of other applications over HTTP,
-such as for example DNS over HTTPS [@?I-D.hoffman-dns-over-https]. The trust
+such as for example DNS over HTTPS [@?RFC8484]. The trust
 issue, however, requires specific developments.
 
 ## HTTPS Tunnels {#httpfrontingtunnels}
