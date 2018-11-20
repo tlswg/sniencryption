@@ -46,7 +46,11 @@ only disclosing the SNI of the Fronting Service to external
 observers. The draft lists known attacks against
 SNI encryption, discusses the
 current "co-tenancy fronting" solution,
-and presents requirements for future TLS layer solutions. 
+and presents requirements for future TLS layer solutions.
+
+In practice, it may well be that no solution can meet every requirement,
+and that practical solutions will have to make some compromises.
+
 
 {mainmatter}
 
@@ -119,7 +123,8 @@ by pervasive surveillance actors.
 
 The clear-text transmission of the SNI was not flagged as a problem
 in the security consideration sections of [@?RFC3546], [@?RFC4366], or
-[@?RFC6066]. These specifications did not anticipate the abuses described
+[@?RFC6066]. These specifications did not anticipate the 
+alternative uses and abuses described
 in (#snileak). One reason may be that, when these RFCs were written, the
 SNI information was available through a variety of other means.
 
@@ -147,7 +152,7 @@ in TLS 1.3 [@?RFC8446].
 The decoupling of IP addresses and server names, the deployment
 of DNS privacy, and the protection of server certificates transmissions
 all contribute to user privacy. Encrypting the SNI now will
-complete this push for privacy and make it much harder to
+complete this push for privacy and make it harder to
 censor specific internet services.
 
 ## End-to-end alternatives
