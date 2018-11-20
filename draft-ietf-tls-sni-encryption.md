@@ -136,7 +136,8 @@ usage. But this is changing with the advent of DNS resolvers
 providing services like DNS over TLS [@?RFC7858]
 or DNS over HTTPS [@?RFC8484].
 
-The common name component of the server certificate generally exposes
+The subjectAltName extension of type dNSName of the server certificate,
+or in its absence the common name component, expose
 the same name as the SNI. In TLS versions 1.0 [@?RFC2246], 1.1 [@?RFC4346], 
 and 1.2 [@?RFC5246], the server send their certificate in clear text,
 ensuring that there would be limited benefits in hiding the SNI. But
