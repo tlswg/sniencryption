@@ -459,6 +459,7 @@ approach was first proposed in a message to that list:
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 Thanks to Daniel Kahn Gillmor for a pretty detailed review of the 
-initial draft. Thanks to 
+initial draft. Thanks to Stephen Farrell, Mark Orchezowski, Martin Rex
+and Martin Thomson for their reviews.
 
 {backmatter}
