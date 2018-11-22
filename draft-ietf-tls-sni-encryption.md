@@ -163,10 +163,17 @@ also thwart functions that are sometimes described as legitimate. Most of
 these functions can however be realized by other means. For example, some DNS service
 providers offer customers the provision to "opt in" filtering services
 for parental control and phishing protection. Per stream QoS can be provided by
-a combination of packet marking and end to end agreements. Enterprises can
-deploy monitoring software to control usage of the enterprises computers. As
+a combination of packet marking and end to end agreements. As
 SNI encryption becomes common, we can expect more deployment of such "end to end"
 solutions.
+
+At the moment enterprises have the option of installing a firewall performing SNI filtering to 
+prevent connections to certain websites. With SNI encryption this becomes ineffective.
+Obviously, managers could block usage of SNI encryption in enterprise computers, but
+this wide scale blocking would diminish the privacy protection of traffic leaving the
+enterprise, which may not be desirable.
+Enterprises managers could rely instead on filtering software and management
+software deployed on enterprises computers.
 
 # Security and Privacy Requirements for SNI Encryption {#snisecreq}
 
@@ -248,11 +255,14 @@ service act as a relay to reach the protected service. Some of those
 solutions involve just one TLS handshake between the client and the fronting service.
 The master secret is verified by verifying a certificate provided by
 the fronting service, but not by the protected service.
-
 These solutions expose the client to a Man-In-The-Middle attack by
 the fronting service. Even if the client
 has some reasonable trust in this services, the possibility of
 MITM attack is troubling.
+
+There are other classes of solutions in which the master secret is verified by
+verifying a certificate provided by the protected service. These solutions offer
+more protection against a Man-In-The-Middle attack by the fronting service.
 
 The fronting service could be pressured
 by adversaries. By design, it could be forced to deny access to
@@ -324,28 +334,6 @@ apply just as well for these transports as for TLS over TCP.
 
 This points to a requirement for SNI Encryption mechanisms to also
 be applicable to non-TCP transports such as DTLS or QUIC.
-
-## Mitigate detection by TLS proxies
-
-It is easy to imagine designs in which the client sends some ClientHello
-extension that points to a secret shared by client and hidden server. If that
-secret is incorporated into the handshake secret, the exchange will only
-succeeds if the connection truly ends at the hidden server. The exchange will
-fail if the extension is stripped by an MITM, and the exchange will also fail
-if an adversary replays the extension in a ClientHello.
-
-The problem with that approach is clear. Adversaries that replay the extension
-can test whether the client truly wanted to access the fronting server, or was
-simply using that fronting server as an access gateway to something else. The
-adversaries will not know what hidden service the client was trying to reach,
-but they can guess. They can also start directly interrogate the user, or
-other unpleasant alternatives.
-
-When designing SNI encryption schemes, we have to take into account MITM attacks that
-strip parameters from the ClientHello, or replay attacks. In both cases, the
-desired behavior is to fall back to a connection with the fronting server,
-so there is no visible difference between a regular connection to that server
-and an attempt to reach the hidden server.
 
 # HTTP Co-Tenancy Fronting {#httpfronting}
 
@@ -456,7 +444,7 @@ In practice, it may well be that no solution can meet every requirement,
 and that practical solutions will have to make some compromises. 
 
 In particular, the requirement to not stick out presented in
-(#snireqdontstickout) may have to be lifted, especially if
+(#snireqdontstickout) may have to be lifted, especially
 for proposed solutions that could quickly reach large scale deployments.
 
 # IANA Considerations
@@ -471,6 +459,6 @@ approach was first proposed in a message to that list:
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 Thanks to Daniel Kahn Gillmor for a pretty detailed review of the 
-initial draft.
+initial draft. Thanks to 
 
 {backmatter}
