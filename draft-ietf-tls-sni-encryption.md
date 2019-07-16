@@ -40,7 +40,7 @@
 .# Abstract
 
 This draft describes the general problem of encrypting the
-Server Name Identification (SNI) TLS extension. The proposed
+Server Name Identification (SNI) TLS parameter. The proposed
 solutions hide a Hidden Service behind a fronting service,
 only disclosing the SNI of the fronting service to external
 observers. The draft lists known attacks against
@@ -113,7 +113,7 @@ reviewed in [@?RFC8404]. They include:
  * Firewalls within enterprise networks blocking web sites not deemed 
    appropriate for work, or
 
- * Firewalls within enterprise networksexempting specific web sites from 
+ * Firewalls within enterprise networks exempting specific web sites from 
    MITM inspection, such as healthcare or financial sites for which 
    inspection would intrude with the privacy of employees.
 
