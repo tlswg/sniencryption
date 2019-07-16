@@ -82,7 +82,7 @@ services is HTTP-level fronting, which we discuss in (#httpfronting).
 # History of the TLS SNI extension
 
 The SNI extension was specified in 2003 in [@?RFC3546] to facilitate management
-of "colocation servers", in which a multiple services shared the same IP
+of "colocation servers", in which multiple services shared the same IP
 address. A typical example would be mutiple web sites served by the
 same web server. The SNI extension carries the name of a specific
 server, enabling the TLS connection to be established with the desired
