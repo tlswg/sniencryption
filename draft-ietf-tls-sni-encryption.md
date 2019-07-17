@@ -90,7 +90,7 @@ server context. The current SNI extension specification can be
 found in [@?RFC6066].
 
 The SNI specification allowed for different types of server names,
-though only the "hostname" variant was standardized and deployed. In that
+though only the "hostname" variant was specified and deployed. In that
 variant, the SNI extension carries the domain name of the target
 server. The SNI extension is carried in clear text in the TLS "ClientHello"
 message.
@@ -98,7 +98,7 @@ message.
 ## Unanticipated usage of SNI information {#snileak}
 
 The SNI was defined to facilitate management of servers, though the
-developer of middleboxes soon found out that they could take
+developers of middleboxes soon found out that they could take
 advantage of the information. Many examples of such usage are
 reviewed in [@?RFC8404]. They include:
 
