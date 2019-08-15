@@ -5,7 +5,7 @@
     docName= "draft-ietf-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
-    date = 2018-11-19T00:00:00Z
+    date = 2019-08-15T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
