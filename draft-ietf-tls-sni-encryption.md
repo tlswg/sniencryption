@@ -266,9 +266,10 @@ MITM attack is troubling.
 There are other classes of solutions in which the master secret is verified by
 verifying a certificate provided by the protected service. These solutions offer
 more protection against a Man-In-The-Middle attack by the fronting service. The
-downside is the the client will not verify the identity of the fronting service
-with risks discussed in {#frontingspoofing}, but solutions will have to
-mitigate this risks. Overall, end-to-end TLS to the protected service is preferable.
+downside is that the client will not verify the identity of the fronting service,
+which enables fronting server spoofing attacks such as the "honeypot" attack
+discussed below. Overall, end-to-end TLS to the protected service is preferable,
+but it is important to also provide a way to authenticate the fronting service.
 
 The fronting service could be pressured by adversaries. 
 By design, it could be forced to deny access to
