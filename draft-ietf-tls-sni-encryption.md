@@ -158,7 +158,7 @@ adversary. Encrypting the SNI now will complete this push for privacy and
 make it harder to censor or otherwise provide differential treatment to 
 specific internet services.
 
-## End-to-end alternatives
+## End-to-end alternatives {#end-to-end}
 
 Deploying SNI encryption will help thwart most of the "unanticipated" SNI usages
 described in (#snileak), including censorship and pervasive surveillance. It will
@@ -456,9 +456,10 @@ In particular, the requirement to not stick out presented in
 (#snireqdontstickout) may have to be lifted, especially
 for proposed solutions that could quickly reach large scale deployments.
 
-The document mentions that encrypting SNI will simultaneously thwart invasions
-of the TLS exchange whose purpose is to improve some forms of security,
-and outlines the need of alternative solutions.
+Replacing clear text SNI transmission by an encrypted variant will also
+thwart MITM interferences that are sometimes described as legitimate.
+As explained in (#end-to-end), alternative solutions will have to
+be developed.
 
 # IANA Considerations
 
