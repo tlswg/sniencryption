@@ -447,7 +447,7 @@ provides guidelines for evaluating proposed solutions.
 
 This document lists a number of attacks against SNI encryption in (#snisecreq),
 and also in (#delegationtokens), and presents a list of requirements
-to mitigate these attacks. The current HTTP-based solutions
+to mitigate these attacks. Current HTTP-based solutions
 described in (#httpfronting) only meet some of these requirements.
 In practice, it may well be that no solution can meet every requirement,
 and that practical solutions will have to make some compromises. 
