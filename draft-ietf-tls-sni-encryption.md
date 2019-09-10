@@ -425,7 +425,7 @@ They need to convince the client that "www.example.com" can be accessed
 through the seemingly unrelated "cdn-node-xyz.example.net". Most CDNs have
 deployed DNS-based solutions to this problem. However, the CDN often
 holds the authoritative certificate of the origin. There is simultaneously
-verification of a relationship between the origin and the CDN (because
+verification of a relationship between the origin and the CDN, through the certificate,
 the certificate can be verified) and a risk that the CDN can spoof the
 content from the origin.
 
