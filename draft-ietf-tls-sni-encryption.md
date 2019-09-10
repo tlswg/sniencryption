@@ -423,7 +423,7 @@ through the DNS, possibly using DNSSEC to avoid spoofing.
 We can observe that content distribution networks (CDNs) have a similar requirement.
 They need to convince the client that "www.example.com" can be accessed
 through the seemingly unrelated "cdn-node-xyz.example.net". Most CDNs have
-deployed DNS-based solutions to this problem, but the CDN oftens
+deployed DNS-based solutions to this problem. However, the CDN often
 holds the authoritative certificate of the origin. There is simultaneously
 verification of a relationship between the origin and the CDN (because
 the certificate can be verified) and a risk that the CDN can spoof the
