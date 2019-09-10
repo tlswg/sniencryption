@@ -476,7 +476,7 @@ approach was first proposed in a message to that list:
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 Thanks to Daniel Kahn Gillmor for a pretty detailed review of the 
-initial draft. Thanks to Mike Bishop, Stephen Farrell, Barry Leiba, Martin Rex,
+initial draft. Thanks to Bernard Aboba, Mike Bishop, Stephen Farrell, Barry Leiba, Martin Rex,
 Meral Shirazipour, Martin Thomson and employees of the
 UK National Cyber Security Centre for their reviews.
 
