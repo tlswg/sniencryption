@@ -73,11 +73,20 @@ is transmitted in clear text. As the other methods of monitoring get
 blocked, monitoring focuses on the clear text SNI. The purpose
 of SNI encryption and privacy is to prevent that.
 
+Replacing clear text SNI transmission by an encrypted variant will
+improve the privacy and reliability of TLS connections, but the design
+of proper SNI encryption solutions is difficult.
 In the past, there have been multiple attempts at defining SNI encryption.
 These attempts have generally floundered, because the simple designs fail
 to mitigate several of the attacks listed in (#snisecreq). In the absence of
 a TLS-level solution, the most popular approach to SNI privacy for web
 services is HTTP-level fronting, which we discuss in (#httpfronting).
+
+This document does not present the design of a solution, but
+provides guidelines for evaluating proposed solutions.
+The need for related work on the encryption of the Application Layer
+Protocol Negotiation (ALPN) parameters of TLS is discussed in
+(#hiding-alpn).
 
 # History of the TLS SNI extension
 
@@ -308,7 +317,7 @@ but interacts awkwardly with the multiple streams feature of HTTP/2 [@?RFC7540].
 This points to the need for an application-agnostic solution, which would be
 implemented fully in the TLS layer.
 
-### Hiding the Application Layer Protocol Negotiation
+### Hiding the Application Layer Protocol Negotiation {#hiding-alpn}
 
 The Application Layer Protocol Negotiation (ALPN) parameters of TLS
 allow implementations to negotiate the application layer protocol used on
@@ -439,12 +448,6 @@ authentication before accessing hidden content.
 
 # Security Considerations {#secusec}
 
-Replacing clear text SNI transmission by an encrypted variant will
-improve the privacy and reliability of TLS connections, but the design
-of proper SNI encryption solutions is difficult. 
-This document does not present the design of a solution, but
-provides guidelines for evaluating proposed solutions.
-
 This document lists a number of attacks against SNI encryption in (#snisecreq),
 and also in (#delegationtokens), and presents a list of requirements
 to mitigate these attacks. Current HTTP-based solutions
@@ -473,7 +476,7 @@ approach was first proposed in a message to that list:
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 Thanks to Daniel Kahn Gillmor for a pretty detailed review of the 
-initial draft. Thanks to Mike Bishop, Stephen Farrell, Barry Leiba, Martin Rex,
+initial draft. Thanks to Bernard Aboba, Mike Bishop, Stephen Farrell, Barry Leiba, Martin Rex,
 Meral Shirazipour, Martin Thomson and employees of the
 UK National Cyber Security Centre for their reviews.
 
