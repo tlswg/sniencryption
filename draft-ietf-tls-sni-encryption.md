@@ -106,8 +106,8 @@ message.
 
 ## Unanticipated usage of SNI information {#snileak}
 
-The SNI was defined to facilitate management of servers, though the
-developers of middleboxes soon found out that they could take
+The SNI was defined to facilitate management of servers, but the
+developers of middleboxes found out that they could take
 advantage of the information. Many examples of such usage are
 reviewed in [@?RFC8404]. They include:
 
@@ -127,7 +127,8 @@ reviewed in [@?RFC8404]. They include:
    sites for which inspection would intrude on the privacy of employees.
 
 The SNI is probably also included in the general collection of metadata 
-by pervasive surveillance actors.
+by pervasive surveillance actors, for example to identify services
+used by surveillance targets.
 
 ## SNI encryption timeliness {#sniwhyencryptnow}
 
@@ -174,7 +175,7 @@ described in (#snileak), including censorship and pervasive surveillance. It wil
 also thwart functions that are sometimes described as legitimate. Most of
 these functions can, however, be realized by other means. For example, some DNS service
 providers offer customers the provision to "opt in" filtering services
-for parental control and phishing protection. Per-stream QoS can be provided by
+for parental control and phishing protection. Per-stream QoS could be provided by
 a combination of packet marking and end-to-end agreements. As
 SNI encryption becomes common, we can expect more deployment of such "end-to-end"
 solutions.
