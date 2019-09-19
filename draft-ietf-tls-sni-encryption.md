@@ -109,13 +109,14 @@ message.
 The SNI was defined to facilitate management of servers, but the
 developers of middleboxes found out that they could take
 advantage of the information. Many examples of such usage are
-reviewed in [@?RFC8404]. They include:
+reviewed in [@?RFC8404], other examples came out during discussions
+of this draft. They include:
 
  * Monitoring and identification of specific sites,
 
- * Content filtering by ISP blocking specific web sites in order to 
-   implement "parental controls", or to prevent access to phishing or other 
-   fraudulent web sites.
+ * Content filtering by network operators or ISP blocking specific web sites
+   in order to implement, for example, parental controls, or to prevent access
+   to phishing or other fraudulent web sites.
 
  * ISP assigning different QoS profiles to target services,
 
@@ -135,7 +136,7 @@ used by surveillance targets.
 The clear-text transmission of the SNI was not flagged as a problem
 in the security consideration sections of [@?RFC3546], [@?RFC4366], or
 [@?RFC6066]. These specifications did not anticipate the 
-alternative uses and abuses described
+alternative usage described
 in (#snileak). One reason may be that, when these RFCs were written, the
 SNI information was available through a variety of other means.
 
@@ -232,11 +233,12 @@ Encrypting the SNI may create extra load for the multiplexed server. Adversaries
 denial of service attacks by generating random encrypted SNI values and forcing the
 multiplexed server to spend resources in useless decryption attempts.
 
-It may be argued that this is not an important DOS avenue, as regular TLS connection
+It may be argued that this is not an important Denial of Service Attacks (DoS) avenue, 
+as regular TLS connection
 attempts also require the server to perform a number of cryptographic operations. However,
 in many cases, the SNI decryption will have to be performed by a front-end component
 with limited resources, while the TLS operations are performed by the component dedicated
-to their respective services. SNI-based DOS attacks could target the front-end component.
+to their respective services. SNI-based DoS attacks could target the front-end component.
 
 ## Do not stick out {#snireqdontstickout}
 
