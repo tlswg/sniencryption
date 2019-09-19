@@ -67,7 +67,7 @@ TLS [@?RFC7858] and DNS over HTTPS [@?RFC8484]
 mitigates the disclosure of DNS information. More and
 more services are colocated on multiplexed servers, loosening the
 relation between IP address and web service. However, multiplexed servers
-rely on the Service Name Information (SNI) TLS extension to direct connections
+rely on the Service Name Information (SNI) TLS extension [@?RFC6066] to direct connections
 to the appropriate service implementation. This protocol element
 is transmitted in clear text. As the other methods of monitoring get
 blocked, monitoring focuses on the clear text SNI. The purpose
@@ -165,15 +165,15 @@ see (#replayattack) for details.
 The decoupling of IP addresses and server names, deployment
 of DNS privacy, and protection of server certificate transmissions
 all contribute to user privacy in the face of an [@?RFC3552]-style
-adversary. Encrypting the SNI now will complete this push for privacy and 
+adversary. Encrypting the SNI completes this push for privacy and 
 make it harder to censor or otherwise provide differential treatment to 
 specific internet services.
 
 ## End-to-end alternatives {#end-to-end}
 
-Deploying SNI encryption will help thwart most of the "unanticipated" SNI usages
-described in (#snileak), including censorship and pervasive surveillance. It will
-also thwart functions that are sometimes described as legitimate. Most of
+Deploying SNI encryption helps thwart most of the "unanticipated" SNI usages
+described in (#snileak), including censorship and pervasive surveillance. It
+also thwarts functions that are sometimes described as legitimate. Most of
 these functions can, however, be realized by other means. For example, some DNS service
 providers offer customers the provision to "opt in" filtering services
 for parental control and phishing protection. Per-stream QoS could be provided by
@@ -181,7 +181,8 @@ a combination of packet marking and end-to-end agreements. As
 SNI encryption becomes common, we can expect more deployment of such "end-to-end"
 solutions.
 
-At the moment, enterprises have the option of installing a firewall performing SNI filtering to 
+At the time of this writing, enterprises have the option of installing a
+firewall performing SNI filtering to 
 prevent connections to certain websites. With SNI encryption this becomes ineffective.
 Obviously, managers could block usage of SNI encryption in enterprise computers, but
 this wide-scale blocking would diminish the privacy protection of traffic leaving the
