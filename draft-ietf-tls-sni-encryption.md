@@ -344,7 +344,7 @@ or spoofed IP level routing, combined with a spoofed certificate.
 
 The SNI encryption requirement does not stop with HTTP over TLS. Multiple other
 applications currently use TLS, including, for example, SMTP [@?RFC5246],
-DNS [@?RFC7858], IMAP [@?RFC2595],
+DNS [@?RFC7858], IMAP [@?RFC8314],
 and XMPP [@?RFC7590]. These applications, too, will benefit from SNI encryption.
 HTTP-only methods like those described in (#httpfrontingtunnels)
 would not apply there. In fact, even for the HTTPS case, the HTTPS tunneling service
