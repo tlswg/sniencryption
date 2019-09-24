@@ -138,7 +138,7 @@ message.
 The SNI was defined to facilitate management of servers, but the
 developers of middleboxes found out that they could take
 advantage of the information. Many examples of such usage are
-reviewed in [@?RFC8404], other examples came out during discussions
+reviewed in [@?RFC8404]. Other examples came out during discussions
 of this draft. They include:
 
  * Filtering or censorship of specific services for a variety of reasons.
@@ -172,7 +172,7 @@ such as tracking IP addresses, DNS names, or server certificates.
 
 Many deployments still allocate different IP addresses to different
 services, so that different services can be identified by their IP
-addresses. However, CDN commonly
+addresses. However, CDNs commonly
 serve a large number of services through a comparatively small 
 number of addresses. 
 
@@ -202,7 +202,7 @@ specific internet services.
 ## End-to-end alternatives {#end-to-end}
 
 Deploying SNI encryption helps thwart most of the unanticipated SNI usages
-described in (#snileak), including censorship and pervasive surveillance. It
+including censorship and pervasive surveillance, but it also
 will break or reduce the efficacy of the operational practices and
 techniques implemented in middle-boxes as described in (#snileak). Most of
 these functions can, however, be realized by other means. For example, some DNS service
@@ -420,7 +420,7 @@ applicability:
 
 The discovery issue is common to most SNI encryption solutions.
 The browser issue was solved in [@domfront] by implementing domain fronting
-as a pluggable transport for he Tor browser. The multi-protocol issue
+as a pluggable transport for the Tor browser. The multi-protocol issue
 can be mitigated by using implementation of other applications over HTTP,
 such as for example DNS over HTTPS [@?RFC8484]. The trust
 issue, however, requires specific developments.
