@@ -36,6 +36,30 @@
 
 %%%
 
+<reference anchor='domfront' target='https://www.bamsoftware.com/papers/fronting/'>
+    <front>
+        <title>Blocking-resistant communication through domain fronting</title>
+        <author initials='D.' surname='Fifield' fullname='David Fifield'>
+      <organization/>
+        </author>
+        <author initials='C.' surname='Lan' fullname='Chang Lan'>
+      <organization/>
+        </author>
+        <author initials='R.' surname='Hynes' fullname='Rod Hynes'>
+      <organization/>
+        </author>
+        <author initials='P.' surname='Wegmann' fullname='Percy Wegmann'>
+      <organization/>
+        </author>
+        <author initials='V.' surname='Paxson' fullname='Vern Paxson'>
+      <organization/>
+        </author>
+        <date year='2015'/>
+    </front>
+
+  <seriesInfo name="DOI" value="10.1515/popets-2015-0009"/>
+</reference>
+
 
 .# Abstract
 
@@ -66,8 +90,13 @@ Progressive deployment of solutions like DNS in
 TLS [@?RFC7858] and DNS over HTTPS [@?RFC8484] 
 mitigates the disclosure of DNS information. More and
 more services are colocated on multiplexed servers, loosening the
-relation between IP address and web service. However, multiplexed servers
-rely on the Service Name Information (SNI) TLS extension to direct connections
+relation between IP address and web service. For example, in virtual hosting
+solutions, multiple services can be hosted as co-tenants on the same server,
+and the IP address and port do not uniquely identify a service. In cloud or 
+Content Delivery Networks (CDNs) solutions, a given platform hosts the services
+or servers servers of a lot of organization, and looking up to what netblock
+an IP address belongs reveals little. However, multiplexed servers
+rely on the Service Name Information (SNI) TLS extension [@?RFC6066] to direct connections
 to the appropriate service implementation. This protocol element
 is transmitted in clear text. As the other methods of monitoring get
 blocked, monitoring focuses on the clear text SNI. The purpose
@@ -109,13 +138,14 @@ message.
 The SNI was defined to facilitate management of servers, but the
 developers of middleboxes found out that they could take
 advantage of the information. Many examples of such usage are
-reviewed in [@?RFC8404]. They include:
+reviewed in [@?RFC8404]. Other examples came out during discussions
+of this draft. They include:
 
- * Monitoring and identification of specific sites,
+ * Filtering or censorship of specific services for a variety of reasons.
 
- * Content filtering by ISP blocking specific web sites in order to 
-   implement "parental controls", or to prevent access to phishing or other 
-   fraudulent web sites.
+ * Content filtering by network operators or ISP blocking specific web sites
+   in order to implement, for example, parental controls, or to prevent access
+   to phishing or other fraudulent web sites.
 
  * ISP assigning different QoS profiles to target services,
 
@@ -135,13 +165,14 @@ used by surveillance targets.
 The clear-text transmission of the SNI was not flagged as a problem
 in the security consideration sections of [@?RFC3546], [@?RFC4366], or
 [@?RFC6066]. These specifications did not anticipate the 
-alternative uses and abuses described
+alternative usage described
 in (#snileak). One reason may be that, when these RFCs were written, the
-SNI information was available through a variety of other means.
+SNI information was available through a variety of other means,
+such as tracking IP addresses, DNS names, or server certificates.
 
 Many deployments still allocate different IP addresses to different
 services, so that different services can be identified by their IP
-addresses. However, content distribution networks (CDN) commonly
+addresses. However, CDNs commonly
 serve a large number of services through a comparatively small 
 number of addresses. 
 
@@ -164,15 +195,16 @@ see (#replayattack) for details.
 The decoupling of IP addresses and server names, deployment
 of DNS privacy, and protection of server certificate transmissions
 all contribute to user privacy in the face of an [@?RFC3552]-style
-adversary. Encrypting the SNI now will complete this push for privacy and 
+adversary. Encrypting the SNI completes this push for privacy and 
 make it harder to censor or otherwise provide differential treatment to 
 specific internet services.
 
 ## End-to-end alternatives {#end-to-end}
 
-Deploying SNI encryption will help thwart most of the "unanticipated" SNI usages
-described in (#snileak), including censorship and pervasive surveillance. It will
-also thwart functions that are sometimes described as legitimate. Most of
+Deploying SNI encryption helps thwart most of the unanticipated SNI usages
+including censorship and pervasive surveillance, but it also
+will break or reduce the efficacy of the operational practices and
+techniques implemented in middle-boxes as described in (#snileak). Most of
 these functions can, however, be realized by other means. For example, some DNS service
 providers offer customers the provision to "opt in" filtering services
 for parental control and phishing protection. Per-stream QoS could be provided by
@@ -180,7 +212,8 @@ a combination of packet marking and end-to-end agreements. As
 SNI encryption becomes common, we can expect more deployment of such "end-to-end"
 solutions.
 
-At the moment, enterprises have the option of installing a firewall performing SNI filtering to 
+At the time of this writing, enterprises have the option of installing a
+firewall performing SNI filtering to 
 prevent connections to certain websites. With SNI encryption this becomes ineffective.
 Obviously, managers could block usage of SNI encryption in enterprise computers, but
 this wide-scale blocking would diminish the privacy protection of traffic leaving the
@@ -191,7 +224,8 @@ software deployed on the enterprise's computers.
 # Security and Privacy Requirements for SNI Encryption {#snisecreq}
 
 Over the past years, there have been multiple proposals to add an SNI encryption
-option in TLS. Many of these proposals appeared promising, though were rejected
+option in TLS. A review of the TLS mailing list archives shows that 
+many of these proposals appeared promising but were rejected
 after security reviews identified plausible attacks. In this section,
 we collect a list of these known attacks.
 
@@ -232,11 +266,12 @@ Encrypting the SNI may create extra load for the multiplexed server. Adversaries
 denial of service attacks by generating random encrypted SNI values and forcing the
 multiplexed server to spend resources in useless decryption attempts.
 
-It may be argued that this is not an important DOS avenue, as regular TLS connection
+It may be argued that this is not an important Denial of Service Attacks (DoS) avenue, 
+as regular TLS connection
 attempts also require the server to perform a number of cryptographic operations. However,
 in many cases, the SNI decryption will have to be performed by a front-end component
 with limited resources, while the TLS operations are performed by the component dedicated
-to their respective services. SNI-based DOS attacks could target the front-end component.
+to their respective services. SNI-based DoS attacks could target the front-end component.
 
 ## Do not stick out {#snireqdontstickout}
 
@@ -309,7 +344,7 @@ or spoofed IP level routing, combined with a spoofed certificate.
 
 The SNI encryption requirement does not stop with HTTP over TLS. Multiple other
 applications currently use TLS, including, for example, SMTP [@?RFC5246],
-DNS [@?RFC7858], IMAP [@?RFC2595],
+DNS [@?RFC7858], IMAP [@?RFC8314],
 and XMPP [@?RFC7590]. These applications, too, will benefit from SNI encryption.
 HTTP-only methods like those described in (#httpfrontingtunnels)
 would not apply there. In fact, even for the HTTPS case, the HTTPS tunneling service
@@ -354,7 +389,8 @@ be applicable to non-TCP transports such as DTLS or QUIC.
 # HTTP Co-Tenancy Fronting {#httpfronting}
 
 In the absence of TLS-level SNI encryption, many sites rely on an "HTTP Co-Tenancy"
-solution. The TLS connection is established with the fronting server, and 
+solution, often refered to as Domain Fronting [@domfront].
+The TLS connection is established with the fronting server, and 
 HTTP requests are then sent over that connection to the hidden service. For
 example, the TLS SNI could be set to "fronting.example.com", the fronting
 server, and HTTP requests sent over that connection could be directed
@@ -379,13 +415,12 @@ applicability:
   the hidden service. The solution does thus not mitigate the context sharing 
   issues described in (#nocontextsharing).
 
-* Since this is an HTTP-level solution, it would not protect non-HTTP
+* Since this is an HTTP-level solution, it does not protect non-HTTP
   protocols as discussed in (#multi-protocol).
 
 The discovery issue is common to most SNI encryption solutions.
-The browser issue may be solved by developing a browser extension that
-support HTTP Fronting, and manages the list of fronting services associated
-with the hidden services that the client uses. The multi-protocol issue
+The browser issue was solved in [@domfront] by implementing domain fronting
+as a pluggable transport for the Tor browser. The multi-protocol issue
 can be mitigated by using implementation of other applications over HTTP,
 such as for example DNS over HTTPS [@?RFC8484]. The trust
 issue, however, requires specific developments.
@@ -420,17 +455,18 @@ adversary.
 
 In practice, this attack is well mitigated when the hidden service is
 accessed through a specialized application. The name of the fronting server
-can then be programmed in the code of the application. But the attack is much
+can then be programmed in the code of the application. But the attack is
 harder to mitigate when the hidden service has to be accessed through general
-purpose web browsers. The browsers will need a mechanism to obtain the
-fronting server indication in a secure way.
+purpose web browsers.
  
 There are several proposed solutions to this problem, such as creating
 a special form of certificate to codify the relation between fronting and
 hidden server, or obtaining the relation between hidden and fronting service
-through the DNS, possibly using DNSSEC to avoid spoofing. 
+through the DNS, possibly using DNSSEC to avoid spoofing. The experiment
+described in [@domfront] solved the issue by integrating with the
+Lantern Internet circumvention circumvention tool.
 
-We can observe that content distribution networks (CDNs) have a similar requirement.
+We can observe that CDNs have a similar requirement.
 They need to convince the client that "www.example.com" can be accessed
 through the seemingly unrelated "cdn-node-xyz.example.net". Most CDNs have
 deployed DNS-based solutions to this problem. However, the CDN often
