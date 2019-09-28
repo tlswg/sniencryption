@@ -112,7 +112,9 @@ a TLS-level solution, the most popular approach to SNI privacy for web
 services is HTTP-level fronting, which we discuss in (#httpfronting).
 
 This document does not present the design of a solution, but
-provides guidelines for evaluating proposed solutions.
+provides guidelines for evaluating proposed solutions. (The review of
+HTTP-level solutionsin (#httpfronting) is not an endorsement of these
+solutions.)
 The need for related work on the encryption of the Application Layer
 Protocol Negotiation (ALPN) parameters of TLS is discussed in
 (#hiding-alpn).
@@ -157,7 +159,7 @@ of this draft. They include:
    sites for which inspection would intrude on the privacy of employees.
 
 The SNI is probably also included in the general collection of metadata 
-by pervasive surveillance actors, for example to identify services
+by pervasive surveillance actors [@?RFC7258], for example to identify services
 used by surveillance targets.
 
 ## SNI encryption timeliness {#sniwhyencryptnow}
@@ -496,8 +498,9 @@ In particular, the requirement to not stick out presented in
 (#snireqdontstickout) may have to be lifted, especially
 for proposed solutions that could quickly reach large scale deployments.
 
-Replacing clear text SNI transmission by an encrypted variant will also
-thwart MITM interferences that are sometimes described as legitimate.
+Replacing clear text SNI transmission by an encrypted variant will break
+or reduce the efficacy of the operational practices and techniques
+implemented in middle-boxes as described in (#snileak).
 As explained in (#end-to-end), alternative solutions will have to
 be developed.
 
