@@ -5,7 +5,7 @@
     docName= "draft-ietf-tls-sni-encryption-latest"
     ipr = "trust200902"
     area = "Network"
-    date = 2019-08-15T00:00:00Z
+    date = 2019-10-07T00:00:00Z
     [pi]
     toc = "yes"
     compact = "yes"
@@ -113,7 +113,7 @@ services is HTTP-level fronting, which we discuss in (#httpfronting).
 
 This document does not present the design of a solution, but
 provides guidelines for evaluating proposed solutions. (The review of
-HTTP-level solutionsin (#httpfronting) is not an endorsement of these
+HTTP-level solutions in (#httpfronting) is not an endorsement of these
 solutions.)
 The need for related work on the encryption of the Application Layer
 Protocol Negotiation (ALPN) parameters of TLS is discussed in
@@ -487,7 +487,7 @@ authentication before accessing hidden content.
 
 # Security Considerations {#secusec}
 
-This document lists a number of attacks against SNI encryption in (#snisecreq),
+This document lists a number of attacks against SNI encryption in (#snisecreq)
 and also in (#delegationtokens), and presents a list of requirements
 to mitigate these attacks. Current HTTP-based solutions
 described in (#httpfronting) only meet some of these requirements.
