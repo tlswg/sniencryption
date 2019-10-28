@@ -100,7 +100,7 @@ rely on the Service Name Information (SNI) TLS extension [@?RFC6066] to direct c
 to the appropriate service implementation. This protocol element
 is transmitted in clear text. As the other methods of monitoring get
 blocked, monitoring focuses on the clear text SNI. The purpose
-of SNI encryption and privacy is to prevent that.
+of SNI encryption is to prevent that and aid privacy.
 
 Replacing clear text SNI transmission by an encrypted variant will
 improve the privacy and reliability of TLS connections, but the design
@@ -196,8 +196,8 @@ see (#replayattack) for details.
 
 The decoupling of IP addresses and server names, deployment
 of DNS privacy, and protection of server certificate transmissions
-all contribute to user privacy in the face of an [@?RFC3552]-style
-adversary. Encrypting the SNI completes this push for privacy and 
+all contribute to user privacy in the face of an [@?RFC7258]-style
+adversary. Encrypting the SNI complements this push for privacy and 
 make it harder to censor or otherwise provide differential treatment to 
 specific internet services.
 
@@ -516,8 +516,12 @@ approach was first proposed in a message to that list:
 https://mailarchive.ietf.org/arch/msg/tls/tXvdcqnogZgqmdfCugrV8M90Ftw.
 
 Thanks to Daniel Kahn Gillmor for a pretty detailed review of the 
-initial draft. Thanks to Bernard Aboba, Mike Bishop, Stephen Farrell, Barry Leiba, Martin Rex,
-Meral Shirazipour, Martin Thomson and employees of the
-UK National Cyber Security Centre for their reviews.
+initial draft. Thanks to Bernard Aboba, Mike Bishop, Alissa Cooper,
+Roman Danyliw, Stephen Farrell, Warren Kumari, Mirja Kuelewind
+Barry Leiba, Martin Rex, Adam Roach, 
+Meral Shirazipour, Martin Thomson, Eric Vyncke, and employees of the
+UK National Cyber Security Centre for their reviews. Thanks to
+Chris Wood, Ben Kaduk and Sean Turner for helping publish this
+document.
 
 {backmatter}
